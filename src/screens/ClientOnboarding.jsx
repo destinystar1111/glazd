@@ -305,7 +305,16 @@ function CompleteScreen({ data, onComplete }) {
       </div>
 
       <div className="complete-actions">
-        <button className="btn-primary" onClick={onComplete}>
+        <button
+          className="btn-primary"
+          onClick={() => onComplete({
+            name:   data.name,
+            city:   data.city,
+            styles: NAIL_STYLES.filter(s => data.styles.includes(s.id)).map(s => s.name),
+            length: NAIL_LENGTHS.find(l => l.id === data.length)?.name ?? '',
+            budget: BUDGETS.find(b => b.id === data.budget)?.range ?? '',
+          })}
+        >
           Explore Nail Techs ✨
         </button>
       </div>

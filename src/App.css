@@ -3348,3 +3348,392 @@
   background: rgba(196, 96, 122, 0.12);
   color: var(--rose-dark);
 }
+
+/* ============================
+   PROFILE SCREEN
+   ============================ */
+
+.profile-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--blush);
+  overflow: hidden;
+}
+
+.pf-scroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hero */
+.pf-hero {
+  position: relative;
+  padding: 36px 24px 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--cream);
+  border-bottom: 1px solid var(--rose-light);
+  overflow: hidden;
+}
+
+.pf-hero-orb {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 213, 222, 0.7) 0%, transparent 68%);
+  pointer-events: none;
+}
+
+/* Avatar */
+.pf-avatar-wrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.pf-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--rose-dark), var(--mauve));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 0 0 4px var(--cream),
+    0 0 0 6px rgba(196, 96, 122, 0.22),
+    0 8px 24px rgba(196, 96, 122, 0.3);
+}
+
+.pf-initials {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.9rem;
+  font-weight: 700;
+  font-style: italic;
+  color: #fff;
+  line-height: 1;
+}
+
+.pf-camera-btn {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(24, 16, 20, 0.72);
+  color: #fff;
+  border: 2.5px solid var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.pf-camera-btn:hover { background: rgba(24, 16, 20, 0.9); }
+
+.pf-name {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--text-dark);
+  line-height: 1.1;
+  margin-top: 2px;
+}
+
+.pf-location {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  color: var(--text-medium);
+  margin-top: -2px;
+}
+
+/* Stats */
+.pf-stats {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr 1px 1fr;
+  align-items: center;
+  background: #fff;
+  padding: 20px 16px;
+  border-bottom: 1px solid var(--rose-light);
+}
+
+.pf-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.pf-stat-num {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1;
+}
+
+.pf-stat-label {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.pf-stat-divider {
+  width: 1px;
+  height: 38px;
+  background: var(--rose-light);
+}
+
+/* Sections */
+.pf-section {
+  padding: 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pf-section-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-light);
+}
+
+/* Tags */
+.pf-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.pf-tag {
+  padding: 5px 12px;
+  background: rgba(196, 96, 122, 0.1);
+  color: var(--rose-dark);
+  border-radius: 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.pf-tag-meta {
+  background: rgba(155, 107, 122, 0.08);
+  color: var(--text-medium);
+}
+
+/* Appointment cards */
+.pf-appt-card {
+  background: #fff;
+  border: 1px solid var(--rose-light);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 2px 8px rgba(196, 96, 122, 0.06);
+}
+
+.pf-appt-upcoming {
+  border-left: 3.5px solid var(--rose-dark);
+  background: rgba(253, 240, 243, 0.45);
+}
+
+.pf-appt-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pf-appt-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pf-appt-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pf-appt-tech {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.pf-appt-service {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.76rem;
+  color: var(--text-medium);
+}
+
+.pf-appt-date {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.74rem;
+  color: var(--rose-dark);
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.pf-appt-price {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.pf-appt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid rgba(196, 96, 122, 0.1);
+}
+
+.pf-deposit-pill {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  color: #2d7a46;
+  background: rgba(52, 168, 83, 0.1);
+  padding: 3px 9px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.pf-cancel-btn {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  color: var(--rose-dark);
+  cursor: pointer;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.pf-cancel-btn:hover { background: rgba(196, 96, 122, 0.09); }
+
+.pf-review-btn {
+  background: none;
+  border: 1.5px solid var(--rose-dark);
+  border-radius: 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.74rem;
+  color: var(--rose-dark);
+  cursor: pointer;
+  font-weight: 600;
+  padding: 5px 12px;
+  transition: background 0.18s, color 0.18s;
+}
+
+.pf-review-btn:hover {
+  background: var(--rose-dark);
+  color: #fff;
+}
+
+.pf-reviewed-pill {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.74rem;
+  color: #2d7a46;
+  background: rgba(52, 168, 83, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.pf-empty-msg {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.84rem;
+  color: var(--text-light);
+  font-style: italic;
+  text-align: center;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  border: 1px dashed #ede0e6;
+}
+
+/* Settings */
+.pf-settings {
+  background: #fff;
+  border: 1px solid var(--rose-light);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(196, 96, 122, 0.06);
+}
+
+.pf-setting-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(196, 96, 122, 0.07);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.14s;
+}
+
+.pf-setting-row:last-child { border-bottom: none; }
+.pf-setting-row:hover { background: rgba(196, 96, 122, 0.04); }
+
+.pf-setting-icon {
+  font-size: 1.05rem;
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.pf-setting-label {
+  flex: 1;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.pf-setting-chevron {
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pf-settings-divider {
+  height: 1px;
+  background: rgba(196, 96, 122, 0.12);
+}
+
+.pf-logout .pf-setting-label { color: var(--rose-dark); }
+
+.pf-bottom-pad { height: 28px; }

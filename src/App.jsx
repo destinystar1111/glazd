@@ -9,24 +9,11 @@ import MatchesScreen   from './screens/MatchesScreen'
 import ChatScreen      from './screens/ChatScreen'
 import BookingScreen   from './screens/BookingScreen'
 import MoodboardScreen from './screens/MoodboardScreen'
+import ProfileScreen  from './screens/ProfileScreen'
 import BottomNav       from './components/BottomNav'
 import { ALL_MATCHES } from './screens/MatchesScreen'
 
 /* ── Placeholder screens ─────────────────────────────────── */
-
-function ProfilePlaceholder() {
-  return (
-    <div className="screen placeholder-screen">
-      <div className="placeholder-icon">👤</div>
-      <h2 className="placeholder-title">My Profile</h2>
-      <p className="placeholder-sub">
-        Manage your style preferences,<br />
-        bookings, and account settings.
-      </p>
-      <span className="placeholder-chip">Coming soon</span>
-    </div>
-  )
-}
 
 function NailTechPlaceholder({ onBack }) {
   return (
@@ -48,7 +35,7 @@ function NailTechPlaceholder({ onBack }) {
 const MAIN_TABS = ['discover', 'matches', 'moodboard', 'profile']
 const UNREAD_COUNT = ALL_MATCHES.filter((m) => m.unread).length
 
-function MainApp({ activeTab, setActiveTab }) {
+function MainApp({ activeTab, setActiveTab, userProfile }) {
   const [chatUser,    setChatUser]    = useState(null)
   const [bookingTech, setBookingTech] = useState(null)
 
@@ -78,7 +65,7 @@ function MainApp({ activeTab, setActiveTab }) {
             {activeTab === 'discover'  && <DiscoverScreen onBook={openBook} />}
             {activeTab === 'matches'   && <MatchesScreen onChat={openChat} />}
             {activeTab === 'moodboard' && <MoodboardScreen />}
-            {activeTab === 'profile'   && <ProfilePlaceholder />}
+            {activeTab === 'profile'   && <ProfileScreen profile={userProfile} />}
           </>
         )}
       </div>
@@ -97,7 +84,8 @@ function MainApp({ activeTab, setActiveTab }) {
 /* ── Root ────────────────────────────────────────────────── */
 
 export default function App() {
-  const [screen, setScreen] = useState('splash')
+  const [screen,      setScreen]      = useState('splash')
+  const [userProfile, setUserProfile] = useState(null)
 
   const isMain = MAIN_TABS.includes(screen)
 
@@ -115,15 +103,15 @@ export default function App() {
       )}
       {screen === 'client' && (
         <ClientOnboarding
-          onBack={()     => setScreen('userType')}
-          onComplete={()  => setScreen('discover')}
+          onBack={()       => setScreen('userType')}
+          onComplete={(data) => { setUserProfile(data); setScreen('discover') }}
         />
       )}
       {screen === 'nailTech' && (
         <NailTechPlaceholder onBack={() => setScreen('userType')} />
       )}
       {isMain && (
-        <MainApp activeTab={screen} setActiveTab={setScreen} />
+        <MainApp activeTab={screen} setActiveTab={setScreen} userProfile={userProfile} />
       )}
     </div>
   )
