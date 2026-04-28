@@ -81,6 +81,43 @@ function fmtDate(d) {
   return `${D_NAMES[d.getDay()]}, ${M_NAMES[d.getMonth()]} ${d.getDate()}`
 }
 
+/* ── Card input formatting ────────────────────────────────── */
+
+const formatCardNum = (v) => {
+  const d = v.replace(/\D/g, '').slice(0, 16)
+  return d.replace(/(.{4})/g, '$1 ').trim()
+}
+
+const formatExpiry = (v) => {
+  const d = v.replace(/\D/g, '').slice(0, 4)
+  if (d.length >= 3) return d.slice(0, 2) + '/' + d.slice(2)
+  return d
+}
+
+/* ── Cancellation deadline ────────────────────────────────── */
+
+function getCancelDeadline(apptDate, timeStr) {
+  const [time, period] = timeStr.split(' ')
+  const [hStr, mStr]   = time.split(':')
+  let h = parseInt(hStr, 10)
+  const m = parseInt(mStr, 10)
+  if (period === 'PM' && h !== 12) h += 12
+  if (period === 'AM' && h === 12) h = 0
+  const d = new Date(apptDate)
+  d.setHours(h, m, 0, 0)
+  const dl  = new Date(d.getTime() - 24 * 60 * 60 * 1000)
+  const dh  = dl.getHours()
+  const dm  = dl.getMinutes()
+  const dp  = dh >= 12 ? 'PM' : 'AM'
+  const dh12 = dh > 12 ? dh - 12 : dh === 0 ? 12 : dh
+  const dmStr = dm > 0 ? `:${String(dm).padStart(2, '0')}` : ''
+  return `${D_NAMES[dl.getDay()]}, ${M_NAMES[dl.getMonth()]} ${dl.getDate()} at ${dh12}${dmStr} ${dp}`
+}
+
+/* ── Client reliability ───────────────────────────────────── */
+// 'reliable' | 'one-cancellation' | 'noshow'
+const CLIENT_RELIABILITY = 'reliable'
+
 /* ── Canvas story card ────────────────────────────────────── */
 
 function rrect(ctx, x, y, w, h, r) {
@@ -193,17 +230,32 @@ async function buildStoryCard(tech, svc, dateStr, timeStr) {
 export default function BookingScreen({ tech, onBack }) {
   const days = getNext7Days()
 
-  const [stage,   setStage]   = useState('form')
-  const [service, setService] = useState(null)
-  const [dayIdx,  setDayIdx]  = useState(null)
-  const [timeVal, setTimeVal] = useState(null)
-  const [notes,   setNotes]   = useState('')
+  const [stage,    setStage]    = useState('form')
+  const [service,  setService]  = useState(null)
+  const [dayIdx,   setDayIdx]   = useState(null)
+  const [timeVal,  setTimeVal]  = useState(null)
+  const [notes,    setNotes]    = useState('')
 
-  const ready = service !== null && dayIdx !== null && timeVal !== null
-  const avail = dayIdx !== null ? AVAIL[dayIdx] : null
+  // Payment step state
+  const [cardName, setCardName] = useState('')
+  const [cardNum,  setCardNum]  = useState('')
+  const [expiry,   setExpiry]   = useState('')
+  const [cvv,      setCvv]      = useState('')
+
+  const ready      = service !== null && dayIdx !== null && timeVal !== null
+  const avail      = dayIdx !== null ? AVAIL[dayIdx] : null
   const selectedSvc = SERVICES.find(s => s.id === service)
+  const cardReady  = cardName.trim().length > 1
+    && cardNum.replace(/\s/g, '').length === 16
+    && expiry.length === 5
+    && cvv.length >= 3
 
-  const handleConfirm = () => { if (ready) setStage('confirmed') }
+  const cancelDeadline = dayIdx !== null && timeVal
+    ? getCancelDeadline(days[dayIdx], timeVal)
+    : null
+
+  const handleConfirm = () => { if (ready) setStage('payment') }
+  const handlePay     = () => { if (cardReady) setStage('confirmed') }
 
   const handleShare = async () => {
     const cv = await buildStoryCard(tech, selectedSvc, fmtDate(days[dayIdx]), timeVal)
@@ -225,8 +277,27 @@ export default function BookingScreen({ tech, onBack }) {
         svc={selectedSvc}
         date={fmtDate(days[dayIdx])}
         time={timeVal}
+        cancelDeadline={cancelDeadline}
         onBack={onBack}
         onShare={handleShare}
+      />
+    )
+  }
+
+  if (stage === 'payment') {
+    return (
+      <PaymentStage
+        tech={tech}
+        svc={selectedSvc}
+        date={fmtDate(days[dayIdx])}
+        time={timeVal}
+        cardName={cardName}  setCardName={setCardName}
+        cardNum={cardNum}    setCardNum={setCardNum}
+        expiry={expiry}      setExpiry={setExpiry}
+        cvv={cvv}            setCvv={setCvv}
+        cardReady={cardReady}
+        onBack={() => setStage('form')}
+        onPay={handlePay}
       />
     )
   }
@@ -339,6 +410,7 @@ export default function BookingScreen({ tech, onBack }) {
             <span className="bk-summary-price">${selectedSvc?.price}</span>
           </div>
         )}
+        <p className="bk-deposit-note">A $25 deposit is required · cancellation policy applies</p>
         <button className="btn-primary" onClick={handleConfirm} disabled={!ready}>
           Confirm Booking
         </button>
@@ -347,9 +419,146 @@ export default function BookingScreen({ tech, onBack }) {
   )
 }
 
+/* ── Payment stage ────────────────────────────────────────── */
+
+function PaymentStage({ tech, svc, date, time, cardName, setCardName, cardNum, setCardNum, expiry, setExpiry, cvv, setCvv, cardReady, onBack, onPay }) {
+  return (
+    <div className="screen booking-screen">
+
+      {/* Header */}
+      <div className="bk-header">
+        <button className="btn-ghost bk-back" onClick={onBack}><ArrowLeft /></button>
+        <div className="bk-tech-pill">
+          <div className="bk-tech-avatar"
+            style={{ background: `linear-gradient(135deg, ${tech.g[0]}, ${tech.g[1]})` }}>
+            <span>{tech.icon}</span>
+          </div>
+          <div>
+            <p className="bk-tech-name">Secure Payment</p>
+            <p className="bk-tech-loc">{tech.name}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="bk-body">
+
+        {/* Booking mini-summary */}
+        <div className="bk-pay-summary">
+          <div className="bk-pay-summary-left">
+            <p className="bk-svc-name">{svc?.name}</p>
+            <p className="bk-svc-meta">{date} · {time}</p>
+          </div>
+          <span className="bk-svc-price">${svc?.price}</span>
+        </div>
+
+        {/* Cancellation Policy */}
+        <div className="bk-policy-card">
+          <div className="bk-policy-header">
+            <ShieldIcon />
+            <span className="bk-policy-title">Cancellation Policy</span>
+          </div>
+          <div className="bk-policy-rules">
+            <div className="bk-policy-rule bk-rule-good">
+              <span className="bk-rule-icon bk-rule-icon-good">✓</span>
+              <div>
+                <p className="bk-rule-title">Cancel 24+ hours before</p>
+                <p className="bk-rule-desc">Deposit fully refunded</p>
+              </div>
+            </div>
+            <div className="bk-policy-rule bk-rule-warn">
+              <span className="bk-rule-icon bk-rule-icon-warn">!</span>
+              <div>
+                <p className="bk-rule-title">Cancel within 24 hours</p>
+                <p className="bk-rule-desc">Deposit kept by your tech</p>
+              </div>
+            </div>
+            <div className="bk-policy-rule bk-rule-danger">
+              <span className="bk-rule-icon bk-rule-icon-danger">✕</span>
+              <div>
+                <p className="bk-rule-title">No-show</p>
+                <p className="bk-rule-desc">50% of service total charged automatically</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Deposit amount row */}
+        <div className="bk-deposit-row">
+          <div>
+            <p className="bk-deposit-label">Deposit to confirm booking</p>
+            <p className="bk-deposit-sub">Remainder paid at appointment</p>
+          </div>
+          <span className="bk-deposit-amount">$25</span>
+        </div>
+
+        {/* Card form */}
+        <div className="bk-section">
+          <p className="bk-section-title">Payment Details</p>
+          <div className="bk-card-form">
+            <input
+              className="bk-card-input"
+              placeholder="Name on card"
+              value={cardName}
+              onChange={e => setCardName(e.target.value)}
+              autoComplete="cc-name"
+            />
+            <div className="bk-card-num-wrap">
+              <input
+                className="bk-card-input"
+                placeholder="1234  5678  9012  3456"
+                value={cardNum}
+                onChange={e => setCardNum(formatCardNum(e.target.value))}
+                inputMode="numeric"
+                autoComplete="cc-number"
+                maxLength={19}
+              />
+              <span className="bk-card-icon"><CardIcon /></span>
+            </div>
+            <div className="bk-card-row">
+              <input
+                className="bk-card-input bk-card-half"
+                placeholder="MM/YY"
+                value={expiry}
+                onChange={e => setExpiry(formatExpiry(e.target.value))}
+                inputMode="numeric"
+                autoComplete="cc-exp"
+                maxLength={5}
+              />
+              <div className="bk-cvv-wrap">
+                <input
+                  className="bk-card-input bk-card-half"
+                  placeholder="CVV"
+                  value={cvv}
+                  onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="cc-csc"
+                  maxLength={4}
+                />
+                <span className="bk-cvv-icon"><LockIcon /></span>
+              </div>
+            </div>
+          </div>
+          <p className="bk-secure-note">🔒 Secured by Stripe · 256-bit SSL</p>
+        </div>
+
+        <div style={{ height: 8 }} />
+      </div>
+
+      {/* Footer */}
+      <div className="bk-footer">
+        <button className="btn-primary" onClick={onPay} disabled={!cardReady}>
+          Pay $25 Deposit →
+        </button>
+      </div>
+    </div>
+  )
+}
+
 /* ── Confirmation screen ──────────────────────────────────── */
 
-function ConfirmScreen({ tech, svc, date, time, onBack, onShare }) {
+function ConfirmScreen({ tech, svc, date, time, cancelDeadline, onBack, onShare }) {
   return (
     <div className="screen bk-confirmed">
 
@@ -405,6 +614,7 @@ function ConfirmScreen({ tech, svc, date, time, onBack, onShare }) {
             { label: 'Service', value: svc?.name },
             { label: 'Date',    value: date },
             { label: 'Time',    value: time },
+            { label: 'Deposit', value: '$25 paid', accent: false },
             { label: 'Total',   value: `$${svc?.price}`, accent: true },
           ].map(({ label, value, accent }) => (
             <div key={label} className="bk-details-row">
@@ -413,6 +623,34 @@ function ConfirmScreen({ tech, svc, date, time, onBack, onShare }) {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Cancellation Policy */}
+      <div className="bk-confirm-policy">
+        <div className="bk-confirm-policy-header">
+          <ShieldIcon />
+          <span className="bk-confirm-policy-title">Cancellation Policy</span>
+        </div>
+        {cancelDeadline && (
+          <div className="bk-confirm-deadline">
+            <span className="bk-deadline-clock">⏰</span>
+            <div>
+              <p className="bk-deadline-label">Free cancellation until</p>
+              <p className="bk-deadline-value">{cancelDeadline}</p>
+            </div>
+          </div>
+        )}
+        <div className="bk-confirm-policy-rules">
+          <p className="bk-policy-mini bk-pmini-good">✓ 24+ hrs before — deposit refunded</p>
+          <p className="bk-policy-mini bk-pmini-warn">! Within 24 hrs — deposit kept by tech</p>
+          <p className="bk-policy-mini bk-pmini-danger">✕ No-show — 50% of service charged</p>
+        </div>
+      </div>
+
+      {/* Client reliability */}
+      <div className="bk-reliability-row">
+        <span className="bk-reliability-label">Your reliability score</span>
+        <ReliabilityBadge score={CLIENT_RELIABILITY} />
       </div>
 
       {/* Story card preview */}
@@ -450,11 +688,54 @@ function ConfirmScreen({ tech, svc, date, time, onBack, onShare }) {
   )
 }
 
+/* ── Reliability badge ────────────────────────────────────── */
+
+export function ReliabilityBadge({ score }) {
+  const MAP = {
+    'reliable':          { label: 'Reliable ✓',     cls: 'rb-reliable' },
+    'one-cancellation':  { label: '1 cancellation',  cls: 'rb-warn'     },
+    'noshow':            { label: 'No-show history', cls: 'rb-danger'   },
+  }
+  const cfg = MAP[score] ?? MAP['reliable']
+  return <span className={`reliability-badge ${cfg.cls}`}>{cfg.label}</span>
+}
+
+/* ── Icons ────────────────────────────────────────────────── */
+
 function ArrowLeft() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 12H5M12 5l-7 7 7 7" />
+    </svg>
+  )
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  )
+}
+
+function LockIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  )
+}
+
+function CardIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+      <line x1="1" y1="10" x2="23" y2="10" />
     </svg>
   )
 }

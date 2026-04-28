@@ -8,24 +8,11 @@ import DiscoverScreen  from './screens/DiscoverScreen'
 import MatchesScreen   from './screens/MatchesScreen'
 import ChatScreen      from './screens/ChatScreen'
 import BookingScreen   from './screens/BookingScreen'
+import MoodboardScreen from './screens/MoodboardScreen'
 import BottomNav       from './components/BottomNav'
 import { ALL_MATCHES } from './screens/MatchesScreen'
 
 /* ── Placeholder screens ─────────────────────────────────── */
-
-function MoodboardPlaceholder() {
-  return (
-    <div className="screen placeholder-screen">
-      <div className="placeholder-icon">🎨</div>
-      <h2 className="placeholder-title">Moodboard</h2>
-      <p className="placeholder-sub">
-        Save nail art inspo, build your aesthetic,<br />
-        and share it with your nail tech.
-      </p>
-      <span className="placeholder-chip">Coming soon</span>
-    </div>
-  )
-}
 
 function ProfilePlaceholder() {
   return (
@@ -90,7 +77,7 @@ function MainApp({ activeTab, setActiveTab }) {
           <>
             {activeTab === 'discover'  && <DiscoverScreen onBook={openBook} />}
             {activeTab === 'matches'   && <MatchesScreen onChat={openChat} />}
-            {activeTab === 'moodboard' && <MoodboardPlaceholder />}
+            {activeTab === 'moodboard' && <MoodboardScreen />}
             {activeTab === 'profile'   && <ProfilePlaceholder />}
           </>
         )}
