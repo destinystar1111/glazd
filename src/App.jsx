@@ -1,41 +1,27 @@
 import { useState } from 'react'
 import './App.css'
 
-import SplashScreen    from './screens/SplashScreen'
-import UserTypeScreen  from './screens/UserTypeScreen'
-import ClientOnboarding from './screens/ClientOnboarding'
-import DiscoverScreen  from './screens/DiscoverScreen'
-import MatchesScreen   from './screens/MatchesScreen'
-import ChatScreen      from './screens/ChatScreen'
-import BookingScreen   from './screens/BookingScreen'
-import MoodboardScreen from './screens/MoodboardScreen'
-import ProfileScreen  from './screens/ProfileScreen'
-import BottomNav       from './components/BottomNav'
-import { ALL_MATCHES } from './screens/MatchesScreen'
-
-/* ── Placeholder screens ─────────────────────────────────── */
-
-function NailTechPlaceholder({ onBack }) {
-  return (
-    <div className="screen placeholder-screen">
-      <div className="placeholder-icon">🎨</div>
-      <h2 className="placeholder-title">Nail Tech Onboarding</h2>
-      <p className="placeholder-sub">
-        The nail tech sign-up flow is<br />coming very soon. ✨
-      </p>
-      <button className="btn-primary" style={{ maxWidth: 260, marginTop: 8 }} onClick={onBack}>
-        Go Back
-      </button>
-    </div>
-  )
-}
+import SplashScreen       from './screens/SplashScreen'
+import UserTypeScreen     from './screens/UserTypeScreen'
+import ClientOnboarding   from './screens/ClientOnboarding'
+import NailTechOnboarding from './screens/NailTechOnboarding'
+import NailTechDashboard  from './screens/NailTechDashboard'
+import RatingScreen       from './screens/RatingScreen'
+import DiscoverScreen     from './screens/DiscoverScreen'
+import MatchesScreen      from './screens/MatchesScreen'
+import ChatScreen         from './screens/ChatScreen'
+import BookingScreen      from './screens/BookingScreen'
+import MoodboardScreen    from './screens/MoodboardScreen'
+import ProfileScreen      from './screens/ProfileScreen'
+import BottomNav          from './components/BottomNav'
+import { ALL_MATCHES }    from './screens/MatchesScreen'
 
 /* ── Main app (post-onboarding) ──────────────────────────── */
 
 const MAIN_TABS = ['discover', 'matches', 'moodboard', 'profile']
 const UNREAD_COUNT = ALL_MATCHES.filter((m) => m.unread).length
 
-function MainApp({ activeTab, setActiveTab, userProfile }) {
+function MainApp({ activeTab, setActiveTab, userProfile, onRate }) {
   const [chatUser,    setChatUser]    = useState(null)
   const [bookingTech, setBookingTech] = useState(null)
 
@@ -59,7 +45,7 @@ function MainApp({ activeTab, setActiveTab, userProfile }) {
     <div className="main-app">
       <div className="main-content">
         {chatUser ? (
-          <ChatScreen match={chatUser} onBack={closeChat} onBook={openBook} />
+          <ChatScreen match={chatUser} onBack={closeChat} onBook={openBook} onRate={onRate} />
         ) : (
           <>
             {activeTab === 'discover'  && <DiscoverScreen onBook={openBook} />}
@@ -84,10 +70,28 @@ function MainApp({ activeTab, setActiveTab, userProfile }) {
 /* ── Root ────────────────────────────────────────────────── */
 
 export default function App() {
-  const [screen,      setScreen]      = useState('splash')
-  const [userProfile, setUserProfile] = useState(null)
+  const [screen,       setScreen]       = useState('splash')
+  const [userProfile,  setUserProfile]  = useState(null)
+  const [ntProfile,    setNtProfile]    = useState(null)
+  const [ratingTarget, setRatingTarget] = useState(null)
+  const [ratings,      setRatings]      = useState([])
 
   const isMain = MAIN_TABS.includes(screen)
+
+  const avgRating = ratings.length
+    ? (ratings.reduce((s, r) => s + r.stars, 0) / ratings.length).toFixed(1)
+    : '4.9'
+
+  const handleRate = (match) => {
+    setRatingTarget(match)
+    setScreen('rate')
+  }
+
+  const handleRatingSubmit = (data) => {
+    setRatings(r => [...r, data])
+    setRatingTarget(null)
+    setScreen('matches')
+  }
 
   return (
     <div className="phone-shell">
@@ -96,22 +100,40 @@ export default function App() {
       )}
       {screen === 'userType' && (
         <UserTypeScreen
-          onClient={()   => setScreen('client')}
+          onClient={()    => setScreen('client')}
           onNailTech={()  => setScreen('nailTech')}
           onBack={()      => setScreen('splash')}
         />
       )}
       {screen === 'client' && (
         <ClientOnboarding
-          onBack={()       => setScreen('userType')}
+          onBack={()         => setScreen('userType')}
           onComplete={(data) => { setUserProfile(data); setScreen('discover') }}
         />
       )}
       {screen === 'nailTech' && (
-        <NailTechPlaceholder onBack={() => setScreen('userType')} />
+        <NailTechOnboarding
+          onBack={()         => setScreen('userType')}
+          onComplete={(data) => { setNtProfile(data); setScreen('ntDash') }}
+        />
+      )}
+      {screen === 'ntDash' && (
+        <NailTechDashboard profile={ntProfile} avgRating={avgRating} />
+      )}
+      {screen === 'rate' && (
+        <RatingScreen
+          tech={ratingTarget}
+          onBack={() => setScreen('matches')}
+          onSubmit={handleRatingSubmit}
+        />
       )}
       {isMain && (
-        <MainApp activeTab={screen} setActiveTab={setScreen} userProfile={userProfile} />
+        <MainApp
+          activeTab={screen}
+          setActiveTab={setScreen}
+          userProfile={userProfile}
+          onRate={handleRate}
+        />
       )}
     </div>
   )

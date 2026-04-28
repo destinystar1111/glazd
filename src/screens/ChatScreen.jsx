@@ -51,7 +51,7 @@ function Avatar({ match, size = 38 }) {
 
 /* ── Screen ──────────────────────────────────────────────── */
 
-export default function ChatScreen({ match, onBack, onBook }) {
+export default function ChatScreen({ match, onBack, onBook, onRate }) {
   const seed = SEED_MSGS[match.id] ?? []
   const [messages, setMessages] = useState(seed)
   const [draft, setDraft]       = useState('')
@@ -148,6 +148,20 @@ export default function ChatScreen({ match, onBack, onBook }) {
           </div>
         )}
       </div>
+
+      {/* ── Rate-session banner (shown for completed appointments) ── */}
+      {match.id === 3 && (
+        <div className="chat-rate-banner" onClick={() => onRate?.(match)}>
+          <div className="chat-rate-banner-left">
+            <div className="chat-rate-stars">★★★★★</div>
+            <div className="chat-rate-text">
+              <span className="chat-rate-title">How was your session?</span>
+              <span className="chat-rate-sub">Rate your experience with {match.name.split(' ')[0]}</span>
+            </div>
+          </div>
+          <span className="chat-rate-cta">Rate →</span>
+        </div>
+      )}
 
       {/* ── Input row ── */}
       <div className="chat-input-row">
