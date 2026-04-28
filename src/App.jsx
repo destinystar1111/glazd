@@ -13,6 +13,7 @@ import ChatScreen         from './screens/ChatScreen'
 import BookingScreen      from './screens/BookingScreen'
 import MoodboardScreen    from './screens/MoodboardScreen'
 import ProfileScreen      from './screens/ProfileScreen'
+import TechProfileScreen  from './screens/TechProfileScreen'
 import BottomNav          from './components/BottomNav'
 import { ALL_MATCHES }    from './screens/MatchesScreen'
 
@@ -24,11 +25,14 @@ const UNREAD_COUNT = ALL_MATCHES.filter((m) => m.unread).length
 function MainApp({ activeTab, setActiveTab, userProfile, onRate }) {
   const [chatUser,    setChatUser]    = useState(null)
   const [bookingTech, setBookingTech] = useState(null)
+  const [viewingTech, setViewingTech] = useState(null)
 
-  const openChat  = (match) => setChatUser(match)
-  const closeChat = ()      => setChatUser(null)
-  const openBook  = (tech)  => setBookingTech(tech)
-  const closeBook = ()      => setBookingTech(null)
+  const openChat       = (match) => setChatUser(match)
+  const closeChat      = ()      => setChatUser(null)
+  const openBook       = (tech)  => setBookingTech(tech)
+  const closeBook      = ()      => setBookingTech(null)
+  const openProfile    = (tech)  => setViewingTech(tech)
+  const closeProfile   = ()      => setViewingTech(null)
 
   /* Booking overlays everything — no nav */
   if (bookingTech) {
@@ -41,6 +45,17 @@ function MainApp({ activeTab, setActiveTab, userProfile, onRate }) {
     )
   }
 
+  /* Tech full profile — overlays everything, no nav */
+  if (viewingTech) {
+    return (
+      <div className="main-app">
+        <div className="main-content">
+          <TechProfileScreen tech={viewingTech} onBack={closeProfile} onBook={openBook} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="main-app">
       <div className="main-content">
@@ -48,7 +63,7 @@ function MainApp({ activeTab, setActiveTab, userProfile, onRate }) {
           <ChatScreen match={chatUser} onBack={closeChat} onBook={openBook} onRate={onRate} />
         ) : (
           <>
-            {activeTab === 'discover'  && <DiscoverScreen onBook={openBook} />}
+            {activeTab === 'discover'  && <DiscoverScreen onBook={openBook} onViewProfile={openProfile} />}
             {activeTab === 'matches'   && <MatchesScreen onChat={openChat} />}
             {activeTab === 'moodboard' && <MoodboardScreen />}
             {activeTab === 'profile'   && <ProfileScreen profile={userProfile} />}

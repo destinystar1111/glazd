@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import NailTechCalendar from './NailTechCalendar'
+import NailTechClients  from './NailTechClients'
+import NailTechProfile  from './NailTechProfile'
 
 /* ── Constants ─────────────────────────────────────────── */
 
@@ -115,6 +118,13 @@ export default function NailTechDashboard({ profile, avgRating }) {
 
   return (
     <div className="screen nt-dash">
+
+      {/* ── Sub-screens ── */}
+      {activeTab === 'calendar' && <NailTechCalendar />}
+      {activeTab === 'clients'  && <NailTechClients />}
+      {activeTab === 'profile'  && <NailTechProfile profile={profile} avgRating={avgRating} />}
+
+      {activeTab === 'dashboard' && (
       <div className="nt-dash-scroll">
 
         {/* ── Header ── */}
@@ -234,6 +244,7 @@ export default function NailTechDashboard({ profile, avgRating }) {
 
         <div style={{ height: 16 }} />
       </div>
+      )} {/* end dashboard tab */}
 
       {/* ── Bottom Nav ── */}
       <div className="nt-bottom-nav">
@@ -254,14 +265,14 @@ export default function NailTechDashboard({ profile, avgRating }) {
         ))}
       </div>
 
-      {/* ── Stats Panels ── */}
-      {statsPanel === 'clients' && (
+      {/* ── Stats Panels (dashboard only) ── */}
+      {activeTab === 'dashboard' && statsPanel === 'clients' && (
         <ClientListPanel onClose={() => setStatsPanel(null)} />
       )}
-      {statsPanel === 'reviews' && (
+      {activeTab === 'dashboard' && statsPanel === 'reviews' && (
         <ReviewsPanel onClose={() => setStatsPanel(null)} avgRating={displayRating} />
       )}
-      {statsPanel === 'monthly' && (
+      {activeTab === 'dashboard' && statsPanel === 'monthly' && (
         <MonthlyPanel onClose={() => setStatsPanel(null)} />
       )}
 

@@ -109,7 +109,7 @@ const NAIL_TECHS = [
 
 const THRESHOLD = 82
 
-export default function DiscoverScreen({ onBook }) {
+export default function DiscoverScreen({ onBook, onViewProfile }) {
   const [currentIndex, setCurrentIndex]   = useState(0)
   const [offset, setOffset]               = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging]       = useState(false)
@@ -213,7 +213,7 @@ export default function DiscoverScreen({ onBook }) {
               <div className="swipe-stamp stamp-pass"  style={{ opacity: passOp  }}>PASS ✕</div>
 
               {/* card body */}
-              <NailTechCard tech={tech} onBook={onBook} />
+              <NailTechCard tech={tech} onBook={onBook} onViewProfile={onViewProfile} />
             </div>
           )
         })}
@@ -250,7 +250,7 @@ export default function DiscoverScreen({ onBook }) {
 
 /* ── Card content ── */
 
-function NailTechCard({ tech, onBook }) {
+function NailTechCard({ tech, onBook, onViewProfile }) {
   return (
     <div className="ntc-inner">
       {/* 2×2 photo grid */}
@@ -293,16 +293,24 @@ function NailTechCard({ tech, onBook }) {
             <span className="ntc-from">from</span>
             <span className="ntc-amount">${tech.price}</span>
           </div>
-          <button
-            className="book-now-btn"
-            onClick={(e) => {
-              e.stopPropagation()
-              e.preventDefault()
-              onBook?.({ name: tech.name, location: tech.location, g: tech.tiles[0].g, icon: tech.pfp })
-            }}
-          >
-            Book Now
-          </button>
+          <div className="ntc-footer-btns">
+            <button
+              className="ntc-view-profile-btn"
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onViewProfile?.(tech) }}
+            >
+              Full profile
+            </button>
+            <button
+              className="book-now-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                e.preventDefault()
+                onBook?.({ name: tech.name, location: tech.location, g: tech.tiles[0].g, icon: tech.pfp })
+              }}
+            >
+              Book Now
+            </button>
+          </div>
         </div>
       </div>
     </div>
