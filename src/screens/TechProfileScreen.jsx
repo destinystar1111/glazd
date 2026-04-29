@@ -268,7 +268,7 @@ export default function TechProfileScreen({ tech, onBack, onBook }) {
         {tech.price && <div className="tech-profile-footer-price">from ${tech.price}</div>}
         <button
           className="tech-profile-book-btn"
-          onClick={() => onBook?.({ name: tech.name, location: tech.location, g: tech.tiles?.[0]?.g ?? ['#f9c5d1','#e8758a'], icon: tech.pfp ?? tech.icon })}
+          onClick={() => onBook?.({ name: tech.name, location: tech.location, g: tech.tiles?.[0]?.g ?? ['#f9c5d1','#e8758a'], icon: tech.pfp ?? tech.icon, specialties: tech.specialties })}
         >
           Book Now ✨
         </button>

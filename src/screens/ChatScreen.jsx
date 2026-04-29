@@ -25,7 +25,16 @@ const SEED_MSGS = {
   6: [
     { id: 1, from: 'them', text: 'Bonjour! So lovely to match with you ✨', time: '3 days ago' },
     { id: 2, from: 'me',   text: 'Your minimalist French tips are perfection 😍', time: '3 days ago' },
-    { id: 3, from: 'them', text: 'Your moodboard is gorgeous, I love the clean aesthetic', time: '3 days ago' },
+    {
+      id: 3, from: 'them', type: 'moodboard',
+      vibes: [
+        { name: 'Glazed Chrome', icon: '🪞', g: ['#dde0f5','#b8c0ee'] },
+        { name: 'Quiet Luxury',  icon: '🤍', g: ['#fdf8f5','#f0e8e0'] },
+      ],
+      text: "Here's some inspo I put together for you \u2728",
+      time: '2 days ago',
+    },
+    { id: 4, from: 'them', text: 'I love your clean aesthetic — these styles would suit you perfectly', time: '2 days ago' },
   ],
 }
 
@@ -51,9 +60,22 @@ function Avatar({ match, size = 38 }) {
 
 /* ── Screen ──────────────────────────────────────────────── */
 
-export default function ChatScreen({ match, onBack, onBook, onRate }) {
+export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodboard }) {
   const seed = SEED_MSGS[match.id] ?? []
-  const [messages, setMessages] = useState(seed)
+  const [messages, setMessages] = useState(() => {
+    if (sharedMoodboard && sharedMoodboard.length > 0) {
+      return [
+        ...seed,
+        {
+          id: 999, from: 'me', type: 'moodboard',
+          vibes: sharedMoodboard,
+          text: "Here's my moodboard for inspo! \u2728",
+          time: 'Just now',
+        },
+      ]
+    }
+    return seed
+  })
   const [draft, setDraft]       = useState('')
   const bottomRef               = useRef(null)
   const inputRef                = useRef(null)
@@ -129,6 +151,33 @@ export default function ChatScreen({ match, onBack, onBook, onRate }) {
               const isMe   = msg.from === 'me'
               const isLast = i === messages.length - 1 ||
                              messages[i + 1]?.from !== msg.from
+
+              /* ── Moodboard card message ── */
+              if (msg.type === 'moodboard') {
+                return (
+                  <div key={msg.id} className={`bubble-wrap ${isMe ? 'bubble-me' : 'bubble-them'}`}>
+                    {!isMe && isLast && <Avatar match={match} size={26} />}
+                    {!isMe && !isLast && <div style={{ width: 26 }} />}
+                    <div className="bubble-moodboard">
+                      <p className="bubble-mb-label">🎨 {isMe ? 'My Moodboard' : 'Style Inspo'}</p>
+                      <div className="bubble-mb-vibes">
+                        {msg.vibes.map(v => (
+                          <div
+                            key={v.name}
+                            className="bubble-mb-vibe"
+                            style={{ background: `linear-gradient(135deg, ${v.g[0]}, ${v.g[1]})` }}
+                          >
+                            <span className="bubble-mb-vibe-icon">{v.icon}</span>
+                            <span className="bubble-mb-vibe-name">{v.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="bubble-mb-text">{msg.text}</p>
+                    </div>
+                  </div>
+                )
+              }
+
               return (
                 <div
                   key={msg.id}

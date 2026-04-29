@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import NailTechCalendar from './NailTechCalendar'
-import NailTechClients  from './NailTechClients'
-import NailTechProfile  from './NailTechProfile'
+import NailTechCalendar  from './NailTechCalendar'
+import NailTechClients   from './NailTechClients'
+import NailTechProfile   from './NailTechProfile'
+import NailTechMoodboard from './NailTechMoodboard'
 
 /* ── Constants ─────────────────────────────────────────── */
 
@@ -79,14 +80,15 @@ const MONTHLY_APPTS = [
 
 /* ── Main Dashboard ────────────────────────────────────── */
 
-export default function NailTechDashboard({ profile, avgRating }) {
-  const [appts,      setAppts]      = useState(INITIAL_APPTS)
-  const [requests,   setRequests]   = useState(INITIAL_REQUESTS)
-  const [accepted,   setAccepted]   = useState([])
-  const [expandedId, setExpandedId] = useState(null)
-  const [modal,      setModal]      = useState(null)       // { type, apptId }
-  const [statsPanel, setStatsPanel] = useState(null)       // 'clients' | 'reviews' | 'monthly'
-  const [activeTab,  setActiveTab]  = useState('dashboard')
+export default function NailTechDashboard({ profile, avgRating, onSettings, onNotifications }) {
+  const [appts,         setAppts]         = useState(INITIAL_APPTS)
+  const [requests,      setRequests]      = useState(INITIAL_REQUESTS)
+  const [accepted,      setAccepted]      = useState([])
+  const [expandedId,    setExpandedId]    = useState(null)
+  const [modal,         setModal]         = useState(null)       // { type, apptId }
+  const [statsPanel,    setStatsPanel]    = useState(null)       // 'clients' | 'reviews' | 'monthly' | 'earnings'
+  const [activeTab,     setActiveTab]     = useState('dashboard')
+  const [calendarClient,setCalendarClient]= useState(null)       // client name pre-selected from calendar
 
   const [refundType,   setRefundType]   = useState('deposit')
   const [refundAmt,    setRefundAmt]    = useState('')
@@ -120,9 +122,22 @@ export default function NailTechDashboard({ profile, avgRating }) {
     <div className="screen nt-dash">
 
       {/* ── Sub-screens ── */}
-      {activeTab === 'calendar' && <NailTechCalendar />}
-      {activeTab === 'clients'  && <NailTechClients />}
-      {activeTab === 'profile'  && <NailTechProfile profile={profile} avgRating={avgRating} />}
+      {activeTab === 'calendar'  && (
+        <NailTechCalendar
+          onClientTap={(clientName) => {
+            setCalendarClient(clientName)
+            setActiveTab('clients')
+          }}
+        />
+      )}
+      {activeTab === 'clients'   && (
+        <NailTechClients
+          initialClientName={calendarClient}
+          onClear={() => setCalendarClient(null)}
+        />
+      )}
+      {activeTab === 'moodboard' && <NailTechMoodboard />}
+      {activeTab === 'profile'   && <NailTechProfile profile={profile} avgRating={avgRating} onSettings={onSettings} />}
 
       {activeTab === 'dashboard' && (
       <div className="nt-dash-scroll">
@@ -133,7 +148,10 @@ export default function NailTechDashboard({ profile, avgRating }) {
             <p className="nt-greeting-label">Good morning</p>
             <h1 className="nt-greeting-name">{name} 💅</h1>
           </div>
-          <button className="nt-settings-btn">⚙️</button>
+          <div className="nt-dash-header-actions">
+            <button className="nt-settings-btn" onClick={onNotifications}>🔔</button>
+            <button className="nt-settings-btn" onClick={onSettings}>⚙️</button>
+          </div>
         </div>
 
         {/* ── Clickable Stats Strip ── */}
@@ -210,7 +228,7 @@ export default function NailTechDashboard({ profile, avgRating }) {
             <h2 className="nt-section-title">Earnings</h2>
             <span className="nt-earnings-month">April 2026</span>
           </div>
-          <div className="nt-earnings-card">
+          <button className="nt-earnings-card nt-earnings-card-btn" onClick={() => setStatsPanel('earnings')}>
             <div className="nt-earnings-main">
               <div className="nt-earnings-amount">$1,840</div>
               <div className="nt-earnings-label">This Month</div>
@@ -230,7 +248,8 @@ export default function NailTechDashboard({ profile, avgRating }) {
                 <div className="nt-earnings-sub-label">Appointments</div>
               </div>
             </div>
-          </div>
+            <div className="nt-earnings-tap-hint">Tap for breakdown →</div>
+          </button>
         </div>
 
         {/* ── Profile Preview ── */}
@@ -252,6 +271,7 @@ export default function NailTechDashboard({ profile, avgRating }) {
           { key:'dashboard', icon:'🏠', label:'Dashboard' },
           { key:'calendar',  icon:'📅', label:'Calendar'  },
           { key:'clients',   icon:'👥', label:'Clients'   },
+          { key:'moodboard', icon:'🎨', label:'Boards'    },
           { key:'profile',   icon:'👤', label:'Profile'   },
         ].map(({ key, icon, label }) => (
           <button
@@ -274,6 +294,9 @@ export default function NailTechDashboard({ profile, avgRating }) {
       )}
       {activeTab === 'dashboard' && statsPanel === 'monthly' && (
         <MonthlyPanel onClose={() => setStatsPanel(null)} />
+      )}
+      {activeTab === 'dashboard' && statsPanel === 'earnings' && (
+        <EarningsBreakdownPanel onClose={() => setStatsPanel(null)} />
       )}
 
       {/* ── Payment Modal ── */}
@@ -694,6 +717,105 @@ function MonthlyPanel({ onClose }) {
             )
           })}
         </div>
+        <div className="nt-panel-footer-note">Showing {MONTHLY_APPTS.length} of 23 appointments</div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Stat Panel: Earnings Breakdown ───────────────────────── */
+
+const WEEKLY_BARS = [
+  { week: 'Apr 1–7',   amount: 210 },
+  { week: 'Apr 8–14',  amount: 380 },
+  { week: 'Apr 15–21', amount: 560 },
+  { week: 'Apr 22–28', amount: 690 },
+]
+
+function EarningsBreakdownPanel({ onClose }) {
+  const maxBar     = Math.max(...WEEKLY_BARS.map(w => w.amount))
+  const totalPaid  = MONTHLY_APPTS.filter(a => a.paymentStatus === 'fully_paid').reduce((s,a) => s+a.amount, 0)
+  const totalPending = MONTHLY_APPTS.filter(a => a.paymentStatus !== 'fully_paid' && a.paymentStatus !== 'refunded').reduce((s,a) => s+a.amount, 0)
+
+  let running = 0
+
+  return (
+    <div className="nt-stat-panel">
+      <div className="nt-panel-header">
+        <button className="nt-panel-back" onClick={onClose}>← Back</button>
+        <h2 className="nt-panel-title">Earnings Breakdown</h2>
+        <div style={{ width: 56 }} />
+      </div>
+
+      <div className="nt-panel-scroll">
+
+        {/* ── Weekly bar chart ── */}
+        <div className="nt-earn-chart-wrap">
+          <p className="nt-earn-chart-title">Earnings by Week</p>
+          <div className="nt-earn-chart">
+            {WEEKLY_BARS.map(bar => {
+              const pct = maxBar > 0 ? (bar.amount / maxBar) * 100 : 0
+              return (
+                <div key={bar.week} className="nt-earn-bar-col">
+                  <div className="nt-earn-bar-track">
+                    <div
+                      className="nt-earn-bar-fill"
+                      style={{ height: `${pct}%` }}
+                    />
+                  </div>
+                  <div className="nt-earn-bar-val">${bar.amount}</div>
+                  <div className="nt-earn-bar-label">{bar.week.split('–')[0]}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── Summary strip ── */}
+        <div className="nt-panel-summary-strip">
+          <div className="nt-panel-sum-item">
+            <div className="nt-panel-sum-val">${totalPaid}</div>
+            <div className="nt-panel-sum-label">Collected</div>
+          </div>
+          <div className="nt-panel-sum-divider" />
+          <div className="nt-panel-sum-item">
+            <div className="nt-panel-sum-val">${totalPending}</div>
+            <div className="nt-panel-sum-label">Pending</div>
+          </div>
+          <div className="nt-panel-sum-divider" />
+          <div className="nt-panel-sum-item">
+            <div className="nt-panel-sum-val">{MONTHLY_APPTS.length}</div>
+            <div className="nt-panel-sum-label">Appointments</div>
+          </div>
+        </div>
+
+        {/* ── Per-appointment list ── */}
+        <div className="nt-earn-list">
+          <p className="nt-earn-list-title">April Appointments</p>
+          {MONTHLY_APPTS.map(appt => {
+            const status = PAY_STATUS[appt.paymentStatus]
+            if (appt.paymentStatus === 'fully_paid') running += appt.amount
+            return (
+              <div key={appt.id} className="nt-earn-row">
+                <div className="nt-month-avatar">{appt.avatar}</div>
+                <div className="nt-earn-row-info">
+                  <div className="nt-earn-row-client">{appt.client}</div>
+                  <div className="nt-earn-row-meta">{appt.service} · {appt.date}</div>
+                </div>
+                <div className="nt-earn-row-right">
+                  <div className="nt-earn-row-amount">${appt.amount}</div>
+                  <span className={`nt-pay-pill ${status.cls}`} style={{ fontSize:'0.6rem' }}>
+                    {status.label}
+                  </span>
+                  {appt.paymentStatus === 'fully_paid' && (
+                    <div className="nt-earn-running">Running: ${running}</div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
         <div className="nt-panel-footer-note">Showing {MONTHLY_APPTS.length} of 23 appointments</div>
       </div>
     </div>

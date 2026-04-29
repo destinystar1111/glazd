@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ALL_MATCHES } from './MatchesScreen'
 
 /* ── Boards ─────────────────────────────────────────────── */
 
@@ -182,11 +183,84 @@ async function buildMoodboardCard(selectedVibes) {
   return cv
 }
 
+/* ── Share modal ────────────────────────────────────────── */
+
+function ShareModal({ vibes, onSend, onClose }) {
+  const [picked, setPicked] = useState(new Set())
+  const [sent,   setSent]   = useState(false)
+
+  const toggle = (id) => setPicked(prev => {
+    const next = new Set(prev)
+    if (next.has(id)) next.delete(id)
+    else              next.add(id)
+    return next
+  })
+
+  const handleSend = () => {
+    onSend(vibes, [...picked])
+    setSent(true)
+    setTimeout(onClose, 1400)
+  }
+
+  return (
+    <div className="mb-modal-overlay" onClick={onClose}>
+      <div className="mb-modal" onClick={e => e.stopPropagation()}>
+        <div className="mb-modal-handle" />
+        <h3 className="mb-modal-title">Share moodboard with…</h3>
+        <p className="mb-modal-sub">{vibes.length} vibe{vibes.length !== 1 ? 's' : ''} selected</p>
+
+        {sent ? (
+          <div className="mb-modal-sent">
+            <span className="mb-modal-sent-icon">✨</span>
+            <p className="mb-modal-sent-label">Moodboard sent!</p>
+          </div>
+        ) : (
+          <>
+            <div className="mb-modal-list">
+              {ALL_MATCHES.map(match => (
+                <button
+                  key={match.id}
+                  className={`mb-modal-row ${picked.has(match.id) ? 'picked' : ''}`}
+                  onClick={() => toggle(match.id)}
+                >
+                  <div
+                    className="mb-modal-avatar"
+                    style={{ background: `linear-gradient(135deg, ${match.g[0]}, ${match.g[1]})` }}
+                  >
+                    <span>{match.icon}</span>
+                  </div>
+                  <div className="mb-modal-info">
+                    <p className="mb-modal-name">{match.name}</p>
+                    <p className="mb-modal-loc">{match.location}</p>
+                  </div>
+                  <div className={`mb-modal-check ${picked.has(match.id) ? 'on' : ''}`}>
+                    {picked.has(match.id) ? '✓' : ''}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="mb-modal-send-btn"
+              disabled={picked.size === 0}
+              onClick={handleSend}
+            >
+              Send to {picked.size > 0 ? picked.size : ''} {picked.size === 1 ? 'tech' : picked.size > 1 ? 'techs' : 'techs'} ✨
+            </button>
+            <button className="mb-modal-cancel" onClick={onClose}>Cancel</button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ── Screen ─────────────────────────────────────────────── */
 
-export default function MoodboardScreen() {
-  const [activeBoard, setActiveBoard] = useState(1)
-  const [selected, setSelected]       = useState(new Set())
+export default function MoodboardScreen({ onShareToTech }) {
+  const [activeBoard,  setActiveBoard]  = useState(1)
+  const [selected,     setSelected]     = useState(new Set())
+  const [showModal,    setShowModal]    = useState(false)
 
   const toggleVibe = (id) => {
     setSelected((prev) => {
@@ -210,6 +284,8 @@ export default function MoodboardScreen() {
     a.href = URL.createObjectURL(blob)
     a.download = 'glazd-moodboard.png'; a.click()
   }
+
+  const vibes = VIBES.filter(v => selected.has(v.id))
 
   return (
     <div className="screen moodboard-screen">
@@ -279,10 +355,28 @@ export default function MoodboardScreen() {
             <strong>{selected.size}</strong> vibe{selected.size !== 1 ? 's' : ''} selected
           </p>
         )}
-        <button className="btn-primary" onClick={handleShare}>
-          Share Moodboard ✦
-        </button>
+        <div className="mb-footer-btns">
+          <button
+            className="mb-share-tech-btn"
+            disabled={selected.size === 0}
+            onClick={() => selected.size > 0 && setShowModal(true)}
+          >
+            Share with my tech 💅
+          </button>
+          <button className="btn-primary" onClick={handleShare}>
+            Share Story ✦
+          </button>
+        </div>
       </div>
+
+      {/* ── Share modal ── */}
+      {showModal && (
+        <ShareModal
+          vibes={vibes}
+          onSend={(vibes, matchIds) => onShareToTech?.(vibes, matchIds)}
+          onClose={() => setShowModal(false)}
+        />
+      )}
     </div>
   )
 }

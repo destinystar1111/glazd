@@ -3,6 +3,7 @@ import { useState } from 'react'
 /* ---- Data ---- */
 
 const STEPS = [
+  { id: 'account',  label: 'Create Account' },
   { id: 'name',     label: 'Your Name' },
   { id: 'location', label: 'Location' },
   { id: 'styles',   label: 'Nail Styles' },
@@ -40,16 +41,22 @@ export default function ClientOnboarding({ onBack, onComplete }) {
   const [step, setStep]   = useState(0)
   const [done, setDone]   = useState(false)
   const [data, setData]   = useState({
+    email: '', password: '', confirmPw: '',
     name: '', city: '', styles: [], length: '', budget: '',
   })
 
   const isValid = () => {
+    if (step === 0) {
+      return data.email.includes('@') &&
+             data.password.length >= 8 &&
+             data.password === data.confirmPw
+    }
     const v = { name: data.name.trim(), city: data.city.trim(), styles: data.styles, length: data.length, budget: data.budget }
-    if (step === 0) return v.name.length > 0
-    if (step === 1) return v.city.length > 0
-    if (step === 2) return v.styles.length > 0
-    if (step === 3) return v.length !== ''
-    if (step === 4) return v.budget !== ''
+    if (step === 1) return v.name.length > 0
+    if (step === 2) return v.city.length > 0
+    if (step === 3) return v.styles.length > 0
+    if (step === 4) return v.length !== ''
+    if (step === 5) return v.budget !== ''
     return false
   }
 
@@ -92,18 +99,21 @@ export default function ClientOnboarding({ onBack, onComplete }) {
       {/* Body */}
       <div className="onboarding-body">
         {step === 0 && (
-          <NameStep value={data.name} onChange={v => setData(d => ({ ...d, name: v }))} />
+          <SignupStep data={data} onChange={setData} />
         )}
         {step === 1 && (
-          <LocationStep value={data.city} onChange={v => setData(d => ({ ...d, city: v }))} />
+          <NameStep value={data.name} onChange={v => setData(d => ({ ...d, name: v }))} />
         )}
         {step === 2 && (
-          <StyleStep selected={data.styles} onToggle={toggleStyle} />
+          <LocationStep value={data.city} onChange={v => setData(d => ({ ...d, city: v }))} />
         )}
         {step === 3 && (
-          <LengthStep selected={data.length} onSelect={v => setData(d => ({ ...d, length: v }))} />
+          <StyleStep selected={data.styles} onToggle={toggleStyle} />
         )}
         {step === 4 && (
+          <LengthStep selected={data.length} onSelect={v => setData(d => ({ ...d, length: v }))} />
+        )}
+        {step === 5 && (
           <BudgetStep selected={data.budget} onSelect={v => setData(d => ({ ...d, budget: v }))} />
         )}
       </div>
@@ -115,6 +125,67 @@ export default function ClientOnboarding({ onBack, onComplete }) {
         </button>
       </div>
     </div>
+  )
+}
+
+/* ---- Step: Create Account ---- */
+
+function SignupStep({ data, onChange }) {
+  const [showPw,  setShowPw]  = useState(false)
+  const [showCon, setShowCon] = useState(false)
+  const set = (key, val) => onChange(d => ({ ...d, [key]: val }))
+
+  const pwMismatch = data.confirmPw.length > 0 && data.password !== data.confirmPw
+  const pwShort    = data.password.length > 0 && data.password.length < 8
+
+  return (
+    <>
+      <h2 className="step-q">Create your account</h2>
+      <p className="step-hint">You're moments away from your perfect match ✨</p>
+      <div className="step-content">
+        <div className="nt-form-stack">
+          <div className="input-wrap">
+            <span className="input-icon">✉️</span>
+            <input
+              className="input-field"
+              type="email"
+              placeholder="Email address"
+              value={data.email}
+              onChange={e => set('email', e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="input-wrap signup-pw-wrap">
+            <span className="input-icon">🔒</span>
+            <input
+              className="input-field"
+              type={showPw ? 'text' : 'password'}
+              placeholder="Password (min. 8 characters)"
+              value={data.password}
+              onChange={e => set('password', e.target.value)}
+            />
+            <button className="signup-pw-eye" onClick={() => setShowPw(v => !v)} type="button">
+              {showPw ? '🙈' : '👁️'}
+            </button>
+          </div>
+          {pwShort && <p className="signup-field-err">Password must be at least 8 characters</p>}
+          <div className="input-wrap signup-pw-wrap">
+            <span className="input-icon">🔒</span>
+            <input
+              className="input-field"
+              type={showCon ? 'text' : 'password'}
+              placeholder="Confirm password"
+              value={data.confirmPw}
+              onChange={e => set('confirmPw', e.target.value)}
+            />
+            <button className="signup-pw-eye" onClick={() => setShowCon(v => !v)} type="button">
+              {showCon ? '🙈' : '👁️'}
+            </button>
+          </div>
+          {pwMismatch && <p className="signup-field-err">Passwords don&apos;t match</p>}
+        </div>
+      </div>
+    </>
   )
 }
 

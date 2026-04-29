@@ -1,4 +1,4 @@
-export default function SplashScreen({ onNext }) {
+export default function SplashScreen({ onNext, onSignIn }) {
   return (
     <div className="screen splash">
       {/* Ambient orbs */}
@@ -42,7 +42,7 @@ export default function SplashScreen({ onNext }) {
         </button>
         <p className="splash-signin">
           Already have an account?{' '}
-          <a href="#">Sign in</a>
+          <button className="splash-signin-link" onClick={onSignIn}>Sign in</button>
         </p>
       </div>
     </div>

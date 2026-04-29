@@ -58,7 +58,7 @@ const DEFAULT_PROFILE = {
 
 /* ── Screen ─────────────────────────────────────────────── */
 
-export default function ProfileScreen({ profile }) {
+export default function ProfileScreen({ profile, onSettings, onNotifications }) {
   const user     = profile ?? DEFAULT_PROFILE
   const initials = user.name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 
@@ -195,7 +195,17 @@ export default function ProfileScreen({ profile }) {
         <div className="pf-section">
           <p className="pf-section-title">Settings</p>
           <div className="pf-settings">
-            {SETTINGS_ITEMS.map(item => (
+            <button className="pf-setting-row" onClick={onSettings}>
+              <span className="pf-setting-icon">⚙️</span>
+              <span className="pf-setting-label">Account Settings</span>
+              <span className="pf-setting-chevron"><ChevronIcon /></span>
+            </button>
+            <button className="pf-setting-row" onClick={onNotifications}>
+              <span className="pf-setting-icon">🔔</span>
+              <span className="pf-setting-label">Notifications</span>
+              <span className="pf-setting-chevron"><ChevronIcon /></span>
+            </button>
+            {SETTINGS_ITEMS.filter(i => i.id !== 1 && i.id !== 2).map(item => (
               <button key={item.id} className="pf-setting-row">
                 <span className="pf-setting-icon">{item.icon}</span>
                 <span className="pf-setting-label">{item.label}</span>

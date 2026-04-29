@@ -134,7 +134,7 @@ function rrect(ctx, x, y, w, h, r) {
   ctx.closePath()
 }
 
-async function buildStoryCard(tech, svc, dateStr, timeStr) {
+async function buildStoryCard(tech) {
   await document.fonts.ready
 
   const W = 1080, H = 1920
@@ -191,31 +191,28 @@ async function buildStoryCard(tech, svc, dateStr, timeStr) {
   c.font = 'italic bold 104px "Playfair Display", Georgia, serif'
   c.fillText(tech.name, W / 2, 1070)
 
-  // ─── Details card ───
-  const [bx, by, bw, bh] = [88, 1128, W - 176, 468]
-  c.fillStyle = 'rgba(255,255,255,0.92)'
-  rrect(c, bx, by, bw, bh, 52); c.fill()
-  c.strokeStyle = 'rgba(245,213,222,0.9)'; c.lineWidth = 3
-  rrect(c, bx, by, bw, bh, 52); c.stroke()
-
-  c.fillStyle = '#c4607a'
-  c.font = 'bold 62px system-ui, sans-serif'
-  c.fillText(svc.name, W / 2, by + 102)
-
-  c.fillStyle = '#9b6b7a'
-  c.font = '500 50px "Playfair Display", Georgia, serif'
-  c.fillText(`$${svc.price}`, W / 2, by + 174)
-
-  c.strokeStyle = 'rgba(245,213,222,0.75)'; c.lineWidth = 2
-  c.beginPath(); c.moveTo(bx + 88, by + 214); c.lineTo(bx + bw - 88, by + 214); c.stroke()
-
-  c.fillStyle = '#3d2535'
-  c.font = 'bold 66px "Playfair Display", Georgia, serif'
-  c.fillText(dateStr, W / 2, by + 318)
-
-  c.fillStyle = '#c4607a'
-  c.font = 'bold 56px system-ui, sans-serif'
-  c.fillText(timeStr, W / 2, by + 400)
+  // ─── Vibe tags ───
+  const specialties = tech.specialties ?? []
+  const tagY = 1160
+  const TAG_H = 90, TAG_PAD = 48, TAG_R = 45
+  const tags = specialties.slice(0, 3)
+  const tagWidths = tags.map(t => {
+    c.font = '38px system-ui, sans-serif'
+    return c.measureText(t).width + TAG_PAD * 2
+  })
+  const totalW = tagWidths.reduce((a, b) => a + b, 0) + (tags.length - 1) * 24
+  let tx = W / 2 - totalW / 2
+  tags.forEach((tag, i) => {
+    const tw = tagWidths[i]
+    rrect(c, tx, tagY, tw, TAG_H, TAG_R)
+    c.fillStyle = 'rgba(245,213,222,0.7)'; c.fill()
+    c.fillStyle = '#c4607a'
+    c.font = '38px system-ui, sans-serif'
+    c.textBaseline = 'middle'
+    c.fillText(tag, tx + tw / 2, tagY + TAG_H / 2)
+    c.textBaseline = 'alphabetic'
+    tx += tw + 24
+  })
 
   // ─── Branding ───
   c.fillStyle = 'rgba(196,96,122,0.44)'
@@ -258,7 +255,7 @@ export default function BookingScreen({ tech, onBack }) {
   const handlePay     = () => { if (cardReady) setStage('confirmed') }
 
   const handleShare = async () => {
-    const cv = await buildStoryCard(tech, selectedSvc, fmtDate(days[dayIdx]), timeVal)
+    const cv = await buildStoryCard(tech)
     const blob = await new Promise(r => cv.toBlob(r, 'image/png'))
     const file = new File([blob], 'glazd-booking.png', { type: 'image/png' })
     if (navigator.canShare?.({ files: [file] })) {
@@ -668,13 +665,13 @@ function ConfirmScreen({ tech, svc, date, time, cancelDeadline, onBack, onShare 
             <span style={{ fontSize: '1.55rem' }}>{tech.icon}</span>
           </div>
           <p className="bk-story-tech-name">{tech.name}</p>
-          <p className="bk-story-svc">{svc?.name}</p>
-          <p className="bk-story-price">${svc?.price}</p>
-          <div className="bk-story-detail-pill">
-            <span>{date}</span>
-            <span className="bk-story-dot" />
-            <span>{time}</span>
-          </div>
+          {tech.specialties && (
+            <div className="bk-story-vibes">
+              {tech.specialties.slice(0, 3).map(s => (
+                <span key={s} className="bk-story-vibe-tag">{s}</span>
+              ))}
+            </div>
+          )}
           <p className="bk-story-brand">✦ glazd.app ✦</p>
         </div>
       </div>

@@ -114,12 +114,21 @@ const ALL_CLIENTS = [
 
 /* ── Client list screen ─────────────────────────────────── */
 
-export default function NailTechClients() {
+export default function NailTechClients({ initialClientName, onClear }) {
   const [search,   setSearch]   = useState('')
-  const [selected, setSelected] = useState(null)
+  const [selected, setSelected] = useState(
+    () => initialClientName
+      ? ALL_CLIENTS.find(c => c.name === initialClientName) ?? null
+      : null
+  )
 
   if (selected) {
-    return <ClientDetail client={selected} onBack={() => setSelected(null)} />
+    return (
+      <ClientDetail
+        client={selected}
+        onBack={() => { setSelected(null); onClear?.() }}
+      />
+    )
   }
 
   const filtered = ALL_CLIENTS.filter(c =>

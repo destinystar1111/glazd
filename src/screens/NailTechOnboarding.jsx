@@ -3,6 +3,7 @@ import { useState } from 'react'
 /* ── Data ──────────────────────────────────────────────── */
 
 const STEPS = [
+  { id: 'account',      label: 'Create Account' },
   { id: 'basic',        label: 'Basic Info' },
   { id: 'services',     label: 'Services & Pricing' },
   { id: 'vibe',         label: 'Your Vibe' },
@@ -61,6 +62,9 @@ export default function NailTechOnboarding({ onBack, onComplete }) {
   const [step, setStep] = useState(0)
   const [done, setDone] = useState(false)
   const [data, setData] = useState({
+    email:        '',
+    password:     '',
+    confirmPw:    '',
     name:         '',
     businessName: '',
     location:     '',
@@ -74,12 +78,17 @@ export default function NailTechOnboarding({ onBack, onComplete }) {
   })
 
   const isValid = () => {
-    if (step === 0) return data.name.trim().length > 0 && data.location.trim().length > 0
-    if (step === 1) return data.services.length > 0 && data.services.some(s => s.name.trim())
-    if (step === 2) return data.vibes.length > 0
-    if (step === 3) return data.bio.trim().length > 0
-    if (step === 4) return true
-    if (step === 5) return Object.values(data.schedule).some(d => d.enabled)
+    if (step === 0) {
+      return data.email.includes('@') &&
+             data.password.length >= 8 &&
+             data.password === data.confirmPw
+    }
+    if (step === 1) return data.name.trim().length > 0 && data.location.trim().length > 0
+    if (step === 2) return data.services.length > 0 && data.services.some(s => s.name.trim())
+    if (step === 3) return data.vibes.length > 0
+    if (step === 4) return data.bio.trim().length > 0
+    if (step === 5) return true
+    if (step === 6) return Object.values(data.schedule).some(d => d.enabled)
     return false
   }
 
@@ -114,12 +123,13 @@ export default function NailTechOnboarding({ onBack, onComplete }) {
       </div>
 
       <div className="onboarding-body">
-        {step === 0 && <NTBasicStep    data={data} onChange={setData} />}
-        {step === 1 && <NTServicesStep data={data} onChange={setData} />}
-        {step === 2 && <NTVibeStep     data={data} onChange={setData} />}
-        {step === 3 && <NTBioStep      data={data} onChange={setData} />}
-        {step === 4 && <NTPortfolioStep data={data} onChange={setData} />}
-        {step === 5 && <NTAvailStep    data={data} onChange={setData} />}
+        {step === 0 && <NTSignupStep   data={data} onChange={setData} />}
+        {step === 1 && <NTBasicStep    data={data} onChange={setData} />}
+        {step === 2 && <NTServicesStep data={data} onChange={setData} />}
+        {step === 3 && <NTVibeStep     data={data} onChange={setData} />}
+        {step === 4 && <NTBioStep      data={data} onChange={setData} />}
+        {step === 5 && <NTPortfolioStep data={data} onChange={setData} />}
+        {step === 6 && <NTAvailStep    data={data} onChange={setData} />}
       </div>
 
       <div className="onboarding-foot">
@@ -128,6 +138,67 @@ export default function NailTechOnboarding({ onBack, onComplete }) {
         </button>
       </div>
     </div>
+  )
+}
+
+/* ── Step 0: Create Account ────────────────────────────── */
+
+function NTSignupStep({ data, onChange }) {
+  const [showPw,  setShowPw]  = useState(false)
+  const [showCon, setShowCon] = useState(false)
+  const set = (key, val) => onChange(d => ({ ...d, [key]: val }))
+
+  const pwMismatch = data.confirmPw.length > 0 && data.password !== data.confirmPw
+  const pwShort    = data.password.length > 0 && data.password.length < 8
+
+  return (
+    <>
+      <h2 className="step-q">Create your account</h2>
+      <p className="step-hint">Let's get your profile ready to shine 💅</p>
+      <div className="step-content">
+        <div className="nt-form-stack">
+          <div className="input-wrap">
+            <span className="input-icon">✉️</span>
+            <input
+              className="input-field"
+              type="email"
+              placeholder="Email address"
+              value={data.email}
+              onChange={e => set('email', e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="input-wrap signup-pw-wrap">
+            <span className="input-icon">🔒</span>
+            <input
+              className="input-field"
+              type={showPw ? 'text' : 'password'}
+              placeholder="Password (min. 8 characters)"
+              value={data.password}
+              onChange={e => set('password', e.target.value)}
+            />
+            <button className="signup-pw-eye" onClick={() => setShowPw(v => !v)} type="button">
+              {showPw ? '🙈' : '👁️'}
+            </button>
+          </div>
+          {pwShort && <p className="signup-field-err">Password must be at least 8 characters</p>}
+          <div className="input-wrap signup-pw-wrap">
+            <span className="input-icon">🔒</span>
+            <input
+              className="input-field"
+              type={showCon ? 'text' : 'password'}
+              placeholder="Confirm password"
+              value={data.confirmPw}
+              onChange={e => set('confirmPw', e.target.value)}
+            />
+            <button className="signup-pw-eye" onClick={() => setShowCon(v => !v)} type="button">
+              {showCon ? '🙈' : '👁️'}
+            </button>
+          </div>
+          {pwMismatch && <p className="signup-field-err">Passwords don&apos;t match</p>}
+        </div>
+      </div>
+    </>
   )
 }
 

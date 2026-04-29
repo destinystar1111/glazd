@@ -37,7 +37,7 @@ const BOOKED_DAYS = {
 const DEFAULT_BLOCKED = new Set([4, 5, 11, 18, 26])
 const TODAY = 28
 
-export default function NailTechCalendar() {
+export default function NailTechCalendar({ onClientTap }) {
   const [selectedDay, setSelectedDay] = useState(TODAY)
   const [blocked,     setBlocked]     = useState(DEFAULT_BLOCKED)
 
@@ -140,7 +140,12 @@ export default function NailTechCalendar() {
                 <div key={appt.id} className="nt-cal-appt-row">
                   <div className="nt-cal-appt-avatar">{appt.avatar}</div>
                   <div className="nt-cal-appt-info">
-                    <div className="nt-cal-appt-client">{appt.client}</div>
+                    <button
+                      className="nt-cal-appt-client nt-cal-client-btn"
+                      onClick={() => onClientTap?.(appt.client)}
+                    >
+                      {appt.client} ›
+                    </button>
                     <div className="nt-cal-appt-service">{appt.service}</div>
                   </div>
                   <div className="nt-cal-appt-right">

@@ -109,13 +109,19 @@ const NAIL_TECHS = [
 
 const THRESHOLD = 82
 
-export default function DiscoverScreen({ onBook, onViewProfile }) {
-  const [currentIndex, setCurrentIndex]   = useState(0)
-  const [offset, setOffset]               = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging]       = useState(false)
-  const [isExiting, setIsExiting]         = useState(null) // 'left' | 'right'
-  const [matchUser, setMatchUser]         = useState(null)
-  const dragStart                         = useRef({ x: 0, y: 0 })
+const OPENERS = [
+  "Hi! I love your work 💅",
+  "Can't wait for my appointment!",
+  "I just shared my moodboard with you ✨",
+]
+
+export default function DiscoverScreen({ onBook, onViewProfile, onSettings, onNotifications }) {
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [offset,       setOffset]       = useState({ x: 0, y: 0 })
+  const [isDragging,   setIsDragging]   = useState(false)
+  const [isExiting,    setIsExiting]    = useState(null)
+  const [matchUser,    setMatchUser]    = useState(null)
+  const dragStart                       = useRef({ x: 0, y: 0 })
 
   const remaining = NAIL_TECHS.slice(currentIndex)
 
@@ -162,27 +168,27 @@ export default function DiscoverScreen({ onBook, onViewProfile }) {
 
       {/* ── Top bar ── */}
       <div className="disc-topbar">
-        <button className="disc-icon-btn" aria-label="Menu">
-          <MenuIcon />
-        </button>
         <span className="disc-wordmark">Glazd</span>
-        <button className="disc-icon-btn" aria-label="Notifications">
-          <BellIcon />
-        </button>
+        <div className="disc-topbar-actions">
+          <button className="disc-icon-btn" aria-label="Notifications" onClick={onNotifications}>
+            <BellIcon />
+          </button>
+          <button className="disc-icon-btn" aria-label="Settings" onClick={onSettings}>
+            <GearIcon />
+          </button>
+        </div>
       </div>
 
       {/* ── Card stack ── */}
       <div className="disc-stack">
         {stack.slice().reverse().map((tech, revIdx) => {
-          const si    = stack.length - 1 - revIdx   // stack index: 0 = top
+          const si    = stack.length - 1 - revIdx
           const isTop = si === 0
 
-          /* top card: follow drag / exit */
           const exitX   = isExiting === 'right' ? 600 : isExiting === 'left' ? -600 : offset.x
           const exitRot = isExiting === 'right' ? 22  : isExiting === 'left' ? -22  : offset.x * 0.035
           const topTY   = (isExiting ? offset.y * 0.4 : offset.y * 0.22)
 
-          /* behind cards: scale + vertical offset */
           const scale   = 1 - si * 0.042
           const behindY = si * 16
 
@@ -194,7 +200,6 @@ export default function DiscoverScreen({ onBook, onViewProfile }) {
             ? 'none'
             : 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
 
-          /* stamp opacities */
           const matchOp = isTop && !isExiting ? Math.max(0, Math.min(1, (offset.x - 22) / 58)) : 0
           const passOp  = isTop && !isExiting ? Math.max(0, Math.min(1, (-offset.x - 22) / 58)) : 0
 
@@ -208,32 +213,24 @@ export default function DiscoverScreen({ onBook, onViewProfile }) {
               onPointerUp={isTop ? onPointerUp : undefined}
               onPointerCancel={isTop ? onPointerUp : undefined}
             >
-              {/* stamps */}
               <div className="swipe-stamp stamp-match" style={{ opacity: matchOp }}>MATCH ❤️</div>
               <div className="swipe-stamp stamp-pass"  style={{ opacity: passOp  }}>PASS ✕</div>
-
-              {/* card body */}
               <NailTechCard tech={tech} onBook={onBook} onViewProfile={onViewProfile} />
             </div>
           )
         })}
       </div>
 
-      {/* ── Action buttons ── */}
-      <div className="disc-actions">
+      {/* ── Action buttons — only pass and heart ── */}
+      <div className="disc-actions disc-actions-two">
         <button
-          className="disc-act pass-act"
+          className="disc-act disc-act-lg pass-act"
           onClick={() => triggerSwipe('left')}
           disabled={!!isExiting}
           aria-label="Pass"
         >✕</button>
         <button
-          className="disc-act super-act"
-          disabled={!!isExiting}
-          aria-label="Super like"
-        >⭐</button>
-        <button
-          className="disc-act heart-act"
+          className="disc-act disc-act-lg heart-act"
           onClick={() => triggerSwipe('right')}
           disabled={!!isExiting}
           aria-label="Match"
@@ -253,7 +250,6 @@ export default function DiscoverScreen({ onBook, onViewProfile }) {
 function NailTechCard({ tech, onBook, onViewProfile }) {
   return (
     <div className="ntc-inner">
-      {/* 2×2 photo grid */}
       <div className="ntc-grid">
         {tech.tiles.map((tile, i) => (
           <div
@@ -266,7 +262,6 @@ function NailTechCard({ tech, onBook, onViewProfile }) {
         ))}
       </div>
 
-      {/* Info panel */}
       <div className="ntc-info">
         <div className="ntc-header-row">
           <div>
@@ -305,7 +300,7 @@ function NailTechCard({ tech, onBook, onViewProfile }) {
               onClick={(e) => {
                 e.stopPropagation()
                 e.preventDefault()
-                onBook?.({ name: tech.name, location: tech.location, g: tech.tiles[0].g, icon: tech.pfp })
+                onBook?.({ name: tech.name, location: tech.location, g: tech.tiles[0].g, icon: tech.pfp, specialties: tech.specialties })
               }}
             >
               Book Now
@@ -317,9 +312,19 @@ function NailTechCard({ tech, onBook, onViewProfile }) {
   )
 }
 
-/* ── Match overlay ── */
+/* ── Match overlay with Say Hello openers ── */
 
 function MatchOverlay({ tech, onClose }) {
+  const [sent,     setSent]     = useState(null)
+  const [custom,   setCustom]   = useState('')
+  const [showChat, setShowChat] = useState(false)
+
+  const sendOpener = (text) => { setSent(text); setShowChat(true) }
+  const sendCustom = () => {
+    if (!custom.trim()) return
+    setSent(custom.trim()); setShowChat(true)
+  }
+
   return (
     <div className="match-overlay" onClick={onClose}>
       <div className="match-card" onClick={(e) => e.stopPropagation()}>
@@ -327,7 +332,36 @@ function MatchOverlay({ tech, onClose }) {
         <div className="match-icon">💅</div>
         <h2 className="match-title">It's a Match!</h2>
         <p className="match-sub">You and <strong>{tech.name}</strong> connected</p>
-        <button className="match-msg-btn">Send a Message</button>
+
+        {!showChat ? (
+          <>
+            <p className="match-hello-label">Say hello! 👋</p>
+            <div className="match-openers">
+              {OPENERS.map(opener => (
+                <button key={opener} className="match-opener-btn" onClick={() => sendOpener(opener)}>
+                  {opener}
+                </button>
+              ))}
+            </div>
+            <div className="match-custom-row">
+              <input
+                className="match-custom-input"
+                placeholder="Write your own message…"
+                value={custom}
+                onChange={e => setCustom(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendCustom()}
+              />
+              <button className="match-custom-send" onClick={sendCustom} disabled={!custom.trim()}>›</button>
+            </div>
+          </>
+        ) : (
+          <div className="match-sent-wrap">
+            <div className="match-sent-bubble">{sent}</div>
+            <p className="match-sent-label">Message sent! ✨</p>
+            <button className="match-msg-btn" onClick={onClose}>Go to Chat →</button>
+          </div>
+        )}
+
         <button className="match-keep-btn" onClick={onClose}>Keep Swiping</button>
       </div>
     </div>
@@ -341,25 +375,12 @@ function AllSeen() {
     <div className="screen disc-empty">
       <div className="disc-empty-icon">💅</div>
       <h2 className="disc-empty-title">You've seen everyone!</h2>
-      <p className="disc-empty-sub">
-        Check back soon for new nail techs<br />in your area.
-      </p>
+      <p className="disc-empty-sub">Check back soon for new nail techs<br />in your area.</p>
     </div>
   )
 }
 
-/* ── Inline SVG icons ── */
-
-function MenuIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <line x1="4" y1="6"  x2="20" y2="6"  />
-      <line x1="4" y1="12" x2="20" y2="12" />
-      <line x1="4" y1="18" x2="20" y2="18" />
-    </svg>
-  )
-}
+/* ── Icons ── */
 
 function BellIcon() {
   return (
@@ -367,6 +388,16 @@ function BellIcon() {
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  )
+}
+
+function GearIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   )
 }

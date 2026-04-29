@@ -1,40 +1,43 @@
 import { useState } from 'react'
 import './App.css'
 
-import SplashScreen       from './screens/SplashScreen'
-import UserTypeScreen     from './screens/UserTypeScreen'
-import ClientOnboarding   from './screens/ClientOnboarding'
-import NailTechOnboarding from './screens/NailTechOnboarding'
-import NailTechDashboard  from './screens/NailTechDashboard'
-import RatingScreen       from './screens/RatingScreen'
-import DiscoverScreen     from './screens/DiscoverScreen'
-import MatchesScreen      from './screens/MatchesScreen'
-import ChatScreen         from './screens/ChatScreen'
-import BookingScreen      from './screens/BookingScreen'
-import MoodboardScreen    from './screens/MoodboardScreen'
-import ProfileScreen      from './screens/ProfileScreen'
-import TechProfileScreen  from './screens/TechProfileScreen'
-import BottomNav          from './components/BottomNav'
-import { ALL_MATCHES }    from './screens/MatchesScreen'
+import SplashScreen         from './screens/SplashScreen'
+import SignInScreen         from './screens/SignInScreen'
+import UserTypeScreen       from './screens/UserTypeScreen'
+import ClientOnboarding     from './screens/ClientOnboarding'
+import NailTechOnboarding   from './screens/NailTechOnboarding'
+import NailTechDashboard    from './screens/NailTechDashboard'
+import RatingScreen         from './screens/RatingScreen'
+import DiscoverScreen       from './screens/DiscoverScreen'
+import MatchesScreen        from './screens/MatchesScreen'
+import ChatScreen           from './screens/ChatScreen'
+import BookingScreen        from './screens/BookingScreen'
+import MoodboardScreen      from './screens/MoodboardScreen'
+import ProfileScreen        from './screens/ProfileScreen'
+import TechProfileScreen    from './screens/TechProfileScreen'
+import SettingsScreen       from './screens/SettingsScreen'
+import NotificationsScreen  from './screens/NotificationsScreen'
+import BottomNav            from './components/BottomNav'
+import { ALL_MATCHES }      from './screens/MatchesScreen'
 
 /* ── Main app (post-onboarding) ──────────────────────────── */
 
-const MAIN_TABS = ['discover', 'matches', 'moodboard', 'profile']
+const MAIN_TABS   = ['discover', 'matches', 'moodboard', 'profile']
 const UNREAD_COUNT = ALL_MATCHES.filter((m) => m.unread).length
 
-function MainApp({ activeTab, setActiveTab, userProfile, onRate }) {
+function MainApp({ activeTab, setActiveTab, userProfile, onRate, onSettings, onNotifications, onLogout, sharedMoodboards, onShareToTech }) {
   const [chatUser,    setChatUser]    = useState(null)
   const [bookingTech, setBookingTech] = useState(null)
   const [viewingTech, setViewingTech] = useState(null)
 
-  const openChat       = (match) => setChatUser(match)
-  const closeChat      = ()      => setChatUser(null)
-  const openBook       = (tech)  => setBookingTech(tech)
-  const closeBook      = ()      => setBookingTech(null)
-  const openProfile    = (tech)  => setViewingTech(tech)
-  const closeProfile   = ()      => setViewingTech(null)
+  const openChat     = (match) => setChatUser(match)
+  const closeChat    = ()      => setChatUser(null)
+  const openBook     = (tech)  => setBookingTech(tech)
+  const closeBook    = ()      => setBookingTech(null)
+  const openProfile  = (tech)  => setViewingTech(tech)
+  const closeProfile = ()      => setViewingTech(null)
 
-  /* Booking overlays everything — no nav */
+  /* Booking overlays everything */
   if (bookingTech) {
     return (
       <div className="main-app">
@@ -45,7 +48,7 @@ function MainApp({ activeTab, setActiveTab, userProfile, onRate }) {
     )
   }
 
-  /* Tech full profile — overlays everything, no nav */
+  /* Tech full profile overlay */
   if (viewingTech) {
     return (
       <div className="main-app">
@@ -60,13 +63,34 @@ function MainApp({ activeTab, setActiveTab, userProfile, onRate }) {
     <div className="main-app">
       <div className="main-content">
         {chatUser ? (
-          <ChatScreen match={chatUser} onBack={closeChat} onBook={openBook} onRate={onRate} />
+          <ChatScreen
+            match={chatUser}
+            onBack={closeChat}
+            onBook={openBook}
+            onRate={onRate}
+            sharedMoodboard={sharedMoodboards?.[chatUser.id] ?? null}
+          />
         ) : (
           <>
-            {activeTab === 'discover'  && <DiscoverScreen onBook={openBook} onViewProfile={openProfile} />}
+            {activeTab === 'discover'  && (
+              <DiscoverScreen
+                onBook={openBook}
+                onViewProfile={openProfile}
+                onSettings={onSettings}
+                onNotifications={onNotifications}
+              />
+            )}
             {activeTab === 'matches'   && <MatchesScreen onChat={openChat} />}
-            {activeTab === 'moodboard' && <MoodboardScreen />}
-            {activeTab === 'profile'   && <ProfileScreen profile={userProfile} />}
+            {activeTab === 'moodboard' && (
+              <MoodboardScreen onShareToTech={onShareToTech} />
+            )}
+            {activeTab === 'profile'   && (
+              <ProfileScreen
+                profile={userProfile}
+                onSettings={onSettings}
+                onNotifications={onNotifications}
+              />
+            )}
           </>
         )}
       </div>
@@ -85,17 +109,23 @@ function MainApp({ activeTab, setActiveTab, userProfile, onRate }) {
 /* ── Root ────────────────────────────────────────────────── */
 
 export default function App() {
-  const [screen,       setScreen]       = useState('splash')
-  const [userProfile,  setUserProfile]  = useState(null)
-  const [ntProfile,    setNtProfile]    = useState(null)
-  const [ratingTarget, setRatingTarget] = useState(null)
-  const [ratings,      setRatings]      = useState([])
+  const [screen,          setScreen]          = useState('splash')
+  const [userProfile,     setUserProfile]     = useState(null)
+  const [ntProfile,       setNtProfile]       = useState(null)
+  const [ratingTarget,    setRatingTarget]    = useState(null)
+  const [ratings,         setRatings]         = useState([])
+  const [settingsFrom,    setSettingsFrom]    = useState('discover')
+  const [notifsFrom,      setNotifsFrom]      = useState('discover')
+  const [sharedMoodboards, setSharedMoodboards] = useState({})
 
   const isMain = MAIN_TABS.includes(screen)
 
   const avgRating = ratings.length
     ? (ratings.reduce((s, r) => s + r.stars, 0) / ratings.length).toFixed(1)
     : '4.9'
+
+  const openSettings = (from) => { setSettingsFrom(from); setScreen('settings') }
+  const openNotifs   = (from) => { setNotifsFrom(from);   setScreen('notifications') }
 
   const handleRate = (match) => {
     setRatingTarget(match)
@@ -108,11 +138,31 @@ export default function App() {
     setScreen('matches')
   }
 
+  const handleShareToTech = (vibes, matchIds) => {
+    setSharedMoodboards(prev => {
+      const next = { ...prev }
+      matchIds.forEach(id => { next[id] = vibes })
+      return next
+    })
+  }
+
   return (
     <div className="phone-shell">
+
       {screen === 'splash' && (
-        <SplashScreen onNext={() => setScreen('userType')} />
+        <SplashScreen
+          onNext={() => setScreen('userType')}
+          onSignIn={() => setScreen('signIn')}
+        />
       )}
+
+      {screen === 'signIn' && (
+        <SignInScreen
+          onBack={() => setScreen('splash')}
+          onSignIn={() => setScreen('discover')}
+        />
+      )}
+
       {screen === 'userType' && (
         <UserTypeScreen
           onClient={()    => setScreen('client')}
@@ -120,21 +170,43 @@ export default function App() {
           onBack={()      => setScreen('splash')}
         />
       )}
+
       {screen === 'client' && (
         <ClientOnboarding
           onBack={()         => setScreen('userType')}
           onComplete={(data) => { setUserProfile(data); setScreen('discover') }}
         />
       )}
+
       {screen === 'nailTech' && (
         <NailTechOnboarding
           onBack={()         => setScreen('userType')}
           onComplete={(data) => { setNtProfile(data); setScreen('ntDash') }}
         />
       )}
+
       {screen === 'ntDash' && (
-        <NailTechDashboard profile={ntProfile} avgRating={avgRating} />
+        <NailTechDashboard
+          profile={ntProfile}
+          avgRating={avgRating}
+          onSettings={() => openSettings('ntDash')}
+          onNotifications={() => openNotifs('ntDash')}
+        />
       )}
+
+      {screen === 'settings' && (
+        <SettingsScreen
+          onBack={() => setScreen(settingsFrom)}
+          isNailTech={settingsFrom === 'ntDash'}
+        />
+      )}
+
+      {screen === 'notifications' && (
+        <NotificationsScreen
+          onBack={() => setScreen(notifsFrom)}
+        />
+      )}
+
       {screen === 'rate' && (
         <RatingScreen
           tech={ratingTarget}
@@ -142,12 +214,18 @@ export default function App() {
           onSubmit={handleRatingSubmit}
         />
       )}
+
       {isMain && (
         <MainApp
           activeTab={screen}
           setActiveTab={setScreen}
           userProfile={userProfile}
           onRate={handleRate}
+          onSettings={() => openSettings(screen)}
+          onNotifications={() => openNotifs(screen)}
+          onLogout={() => setScreen('splash')}
+          sharedMoodboards={sharedMoodboards}
+          onShareToTech={handleShareToTech}
         />
       )}
     </div>
