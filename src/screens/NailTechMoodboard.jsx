@@ -10,15 +10,131 @@ const STYLE_VIBES = [
 ]
 
 const BOARDS = [
-  { id:'specialties', label:'My Specialties', icon:'💅' },
-  { id:'spring',      label:'Spring 2026',    icon:'🌸' },
-  { id:'summer',      label:'Summer Inspo',   icon:'☀️' },
+  {
+    id: 'specialties',
+    label: 'My Specialties',
+    icon: '💅',
+    vibes: [STYLE_VIBES[0], STYLE_VIBES[4], STYLE_VIBES[2]],
+  },
+  {
+    id: 'spring',
+    label: 'Spring 2026',
+    icon: '🌸',
+    vibes: [STYLE_VIBES[4], STYLE_VIBES[2], STYLE_VIBES[0]],
+  },
+  {
+    id: 'summer',
+    label: 'Summer Inspo',
+    icon: '☀️',
+    vibes: [STYLE_VIBES[2], STYLE_VIBES[3], STYLE_VIBES[1]],
+  },
 ]
 
-export default function NailTechMoodboard() {
+/* Mock matched clients (NT's client list) */
+const NT_CLIENTS = [
+  { id: 1, name: 'Aria Monroe',   avatar: '💅', g: ['#f9c5d1', '#e8758a'] },
+  { id: 6, name: 'Solène Dubois', avatar: '🤍', g: ['#e8e0d8', '#d4c8be'] },
+  { id: 3, name: 'Chloe Tan',     avatar: '👑', g: ['#ffd700', '#e8a800'] },
+  { id: 2, name: 'Jade Voss',     avatar: '🖤', g: ['#2d1b3d', '#4a2560'] },
+  { id: 5, name: 'Raven Ellis',   avatar: '🪞', g: ['#dde0f5', '#b8c0ee'] },
+]
+
+/* ── Share Modal ────────────────────────────────────────── */
+
+function ShareModal({ board, onSend, onClose }) {
+  const [selected, setSelected] = useState(new Set())
+  const [sent,     setSent]     = useState(false)
+
+  const toggle = (id) => setSelected(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+
+  const handleSend = () => {
+    if (selected.size === 0) return
+    setSent(true)
+    setTimeout(() => {
+      onSend([...selected])
+      onClose()
+    }, 1300)
+  }
+
+  return (
+    <div className="nt-mb-share-overlay" onClick={onClose}>
+      <div className="nt-mb-share-sheet" onClick={e => e.stopPropagation()}>
+        <div className="nt-mb-share-handle" />
+
+        {sent ? (
+          <div className="nt-mb-share-success">
+            <span className="nt-mb-share-success-icon">🌟</span>
+            <p className="nt-mb-share-success-title">Board sent!</p>
+            <p className="nt-mb-share-success-sub">Your clients will see it in their chat ✨</p>
+          </div>
+        ) : (
+          <>
+            {/* Board preview */}
+            <p className="nt-mb-share-title">{board.icon} {board.label}</p>
+            <div className="nt-mb-share-preview">
+              {board.vibes.slice(0, 3).map(v => (
+                <div
+                  key={v.id}
+                  className="nt-mb-share-preview-tile"
+                  style={{ background: `linear-gradient(135deg, ${v.g[0]}, ${v.g[1]})` }}
+                >
+                  <span>{v.icon}</span>
+                </div>
+              ))}
+            </div>
+
+            <p className="nt-mb-share-sub">Choose clients to share with</p>
+
+            <div className="nt-mb-client-list">
+              {NT_CLIENTS.map(client => {
+                const isSel = selected.has(client.id)
+                return (
+                  <button
+                    key={client.id}
+                    className={`nt-mb-client-row ${isSel ? 'selected' : ''}`}
+                    onClick={() => toggle(client.id)}
+                  >
+                    <div
+                      className="nt-mb-client-avatar"
+                      style={{ background: `linear-gradient(135deg, ${client.g[0]}, ${client.g[1]})` }}
+                    >
+                      {client.avatar}
+                    </div>
+                    <span className="nt-mb-client-name">{client.name}</span>
+                    <span className="nt-mb-client-check">{isSel ? '✓' : ''}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              className="nt-mb-share-send-btn"
+              onClick={handleSend}
+              disabled={selected.size === 0}
+            >
+              {selected.size > 0
+                ? `Send to ${selected.size} client${selected.size !== 1 ? 's' : ''} ✦`
+                : 'Select clients to send'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ── Screen ─────────────────────────────────────────────── */
+
+export default function NailTechMoodboard({ onShareBoard }) {
   const [activeBoard, setActiveBoard] = useState('specialties')
   const [selected,    setSelected]    = useState(new Set())
-  const [toast,       setToast]       = useState(false)
+  const [shareBoard,  setShareBoard]  = useState(null)  // board being shared
+
+  const currentBoard = BOARDS.find(b => b.id === activeBoard)
 
   const toggle = (id) => {
     setSelected(prev => {
@@ -29,10 +145,9 @@ export default function NailTechMoodboard() {
     })
   }
 
-  const handleShare = () => {
-    if (selected.size === 0) return
-    setToast(true)
-    setTimeout(() => setToast(false), 2600)
+  const handleSend = (clientIds) => {
+    if (!shareBoard) return
+    onShareBoard?.(shareBoard.label, shareBoard.vibes, clientIds)
   }
 
   return (
@@ -44,22 +159,32 @@ export default function NailTechMoodboard() {
         <p className="nt-mb-sub">curate & share your aesthetic</p>
       </div>
 
-      {/* Board tabs */}
-      <div className="nt-mb-boards-row">
+      {/* Board cards */}
+      <div className="nt-mb-boards-cards">
         {BOARDS.map(b => (
-          <button
+          <div
             key={b.id}
-            className={`nt-mb-board-pill ${activeBoard === b.id ? 'active' : ''}`}
+            className={`nt-mb-board-card ${activeBoard === b.id ? 'active' : ''}`}
             onClick={() => setActiveBoard(b.id)}
           >
-            <span>{b.icon}</span>
-            <span>{b.label}</span>
-          </button>
+            <div className="nt-mb-board-card-left">
+              <span className="nt-mb-board-card-icon">{b.icon}</span>
+              <span className="nt-mb-board-card-label">{b.label}</span>
+            </div>
+            <button
+              className="nt-mb-board-share-btn"
+              onClick={e => { e.stopPropagation(); setShareBoard(b) }}
+            >
+              Share ↗
+            </button>
+          </div>
         ))}
-        <button className="nt-mb-board-pill nt-mb-board-new">
-          <span>＋</span>
-          <span>New Board</span>
-        </button>
+        <div className="nt-mb-board-card nt-mb-board-new-card" onClick={() => {}}>
+          <div className="nt-mb-board-card-left">
+            <span className="nt-mb-board-card-icon">＋</span>
+            <span className="nt-mb-board-card-label">New Board</span>
+          </div>
+        </div>
       </div>
 
       {/* Style grid */}
@@ -96,24 +221,28 @@ export default function NailTechMoodboard() {
 
       {/* Footer */}
       <div className="nt-mb-footer">
-        {toast && (
-          <div className="nt-mb-toast">
-            ✨ Moodboard sent to matched clients!
-          </div>
-        )}
-        {selected.size > 0 && !toast && (
+        {selected.size > 0 && (
           <p className="nt-mb-count">
             <strong>{selected.size}</strong> style{selected.size !== 1 ? 's' : ''} selected
           </p>
         )}
         <button
           className="btn-primary"
-          onClick={handleShare}
+          onClick={() => setShareBoard(currentBoard)}
           disabled={selected.size === 0}
         >
-          Share with Clients ✦
+          Share Current Board ✦
         </button>
       </div>
+
+      {/* Share modal */}
+      {shareBoard && (
+        <ShareModal
+          board={shareBoard}
+          onSend={handleSend}
+          onClose={() => setShareBoard(null)}
+        />
+      )}
     </div>
   )
 }

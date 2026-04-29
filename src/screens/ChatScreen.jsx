@@ -60,21 +60,30 @@ function Avatar({ match, size = 38 }) {
 
 /* ── Screen ──────────────────────────────────────────────── */
 
-export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodboard }) {
+export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodboard, ntSharedBoards }) {
   const seed = SEED_MSGS[match.id] ?? []
   const [messages, setMessages] = useState(() => {
+    const base = [...seed]
     if (sharedMoodboard && sharedMoodboard.length > 0) {
-      return [
-        ...seed,
-        {
-          id: 999, from: 'me', type: 'moodboard',
-          vibes: sharedMoodboard,
-          text: "Here's my moodboard for inspo! \u2728",
-          time: 'Just now',
-        },
-      ]
+      base.push({
+        id: 999, from: 'me', type: 'moodboard',
+        vibes: sharedMoodboard,
+        text: "Here's my moodboard for inspo! \u2728",
+        time: 'Just now',
+      })
     }
-    return seed
+    if (ntSharedBoards && ntSharedBoards.length > 0) {
+      ntSharedBoards.forEach((board, i) => {
+        base.push({
+          id: 1000 + i, from: 'them', type: 'moodboard',
+          boardLabel: board.boardLabel,
+          vibes: board.vibes,
+          text: `Here's my ${board.boardLabel} board for inspo \u2728`,
+          time: 'Just now',
+        })
+      })
+    }
+    return base
   })
   const [draft, setDraft]       = useState('')
   const bottomRef               = useRef(null)
@@ -159,9 +168,9 @@ export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodbo
                     {!isMe && isLast && <Avatar match={match} size={26} />}
                     {!isMe && !isLast && <div style={{ width: 26 }} />}
                     <div className="bubble-moodboard">
-                      <p className="bubble-mb-label">🎨 {isMe ? 'My Moodboard' : 'Style Inspo'}</p>
+                      <p className="bubble-mb-label">🎨 {isMe ? 'My Moodboard' : (msg.boardLabel ?? 'Style Inspo')}</p>
                       <div className="bubble-mb-vibes">
-                        {msg.vibes.map(v => (
+                        {msg.vibes.slice(0, 3).map(v => (
                           <div
                             key={v.name}
                             className="bubble-mb-vibe"
@@ -171,8 +180,12 @@ export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodbo
                             <span className="bubble-mb-vibe-name">{v.name}</span>
                           </div>
                         ))}
+                        {msg.vibes.length > 3 && (
+                          <p className="bubble-mb-more">+{msg.vibes.length - 3} more vibes</p>
+                        )}
                       </div>
-                      <p className="bubble-mb-text">{msg.text}</p>
+                      {msg.text && <p className="bubble-mb-text">{msg.text}</p>}
+                      <button className="bubble-mb-view-btn">View Board ↗</button>
                     </div>
                   </div>
                 )

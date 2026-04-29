@@ -7,6 +7,19 @@ const VIBE_EMOJI_MAP = {
   character: '🎨', chrome: '🪞', bridal: '🤍', bold: '🌶️',
 }
 
+const VIBE_OPTIONS = [
+  { id: 'glam',      emoji: '💎', name: 'Glam' },
+  { id: 'witchy',    emoji: '🖤', name: 'Witchy' },
+  { id: 'minimal',   emoji: '✨', name: 'Minimalist' },
+  { id: 'softgirl',  emoji: '🎀', name: 'Soft Girl' },
+  { id: 'character', emoji: '🎨', name: 'Character Art' },
+  { id: 'chrome',    emoji: '🪞', name: 'Chrome' },
+  { id: 'bridal',    emoji: '🤍', name: 'Bridal' },
+  { id: 'bold',      emoji: '🌶️', name: 'Bold' },
+]
+
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
 const VIBE_TAG_LABELS = {
   clean:  'So clean ✨',
   exact:  'Exactly what I wanted 💅',
@@ -39,24 +52,174 @@ const FALLBACK_TILES = [
   { bg:'linear-gradient(135deg,#dde8f5,#c8d8f0)', emoji:'🪄' },
 ]
 
+/* ── Edit Profile Sub-view ──────────────────────────────── */
+
+function EditNTProfile({ initData, onSave, onBack }) {
+  const [name,     setName]     = useState(initData.name)
+  const [bizName,  setBizName]  = useState(initData.businessName)
+  const [location, setLocation] = useState(initData.location)
+  const [bio,      setBio]      = useState(initData.bio)
+  const [vibes,    setVibes]    = useState(new Set(initData.vibes))
+  const [services, setServices] = useState(initData.services.map(s => ({ ...s })))
+  const [schedule, setSchedule] = useState({ ...initData.schedule })
+  const [saved,    setSaved]    = useState(false)
+
+  const toggleVibe = (id) => setVibes(prev => {
+    const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next
+  })
+
+  const toggleDay = (day) => setSchedule(prev => ({
+    ...prev, [day]: { ...prev[day], enabled: !prev[day].enabled }
+  }))
+
+  const updateSvc = (id, key, val) =>
+    setServices(prev => prev.map(s => s.id === id ? { ...s, [key]: val } : s))
+
+  const addSvc = () => setServices(prev => [
+    ...prev, { id: Date.now(), name: '', duration: 60, price: 0 }
+  ])
+
+  const removeSvc = (id) => setServices(prev => prev.filter(s => s.id !== id))
+
+  const handleSave = () => {
+    setSaved(true)
+    setTimeout(() => {
+      onSave({ name, businessName: bizName, location, bio, vibes: [...vibes], services, schedule })
+    }, 700)
+  }
+
+  const canSave = name.trim().length > 0 && location.trim().length > 0
+
+  return (
+    <div className="nt-edit-view">
+      <div className="nt-edit-header">
+        <button className="nt-edit-back" onClick={onBack}>← Back</button>
+        <h2 className="nt-edit-title">Edit Profile</h2>
+        <div style={{ width: 60 }} />
+      </div>
+
+      <div className="nt-edit-body">
+
+        {/* Basic Info */}
+        <p className="nt-edit-section-label">Basic Info</p>
+        <label className="nt-edit-label">Name</label>
+        <input className="nt-edit-input" value={name} onChange={e => setName(e.target.value)} placeholder="Your name" autoFocus />
+
+        <label className="nt-edit-label">Business / Studio Name</label>
+        <input className="nt-edit-input" value={bizName} onChange={e => setBizName(e.target.value)} placeholder="Optional" />
+
+        <label className="nt-edit-label">Location</label>
+        <input className="nt-edit-input" value={location} onChange={e => setLocation(e.target.value)} placeholder="City, State" />
+
+        {/* Bio */}
+        <p className="nt-edit-section-label" style={{ marginTop: 20 }}>Philosophy</p>
+        <textarea
+          className="nt-edit-textarea"
+          value={bio}
+          onChange={e => setBio(e.target.value)}
+          placeholder="My nail philosophy is..."
+          rows={4}
+          maxLength={280}
+        />
+        <p className="nt-edit-char-count">{bio.length} / 280</p>
+
+        {/* Vibes */}
+        <p className="nt-edit-section-label">Your Vibe</p>
+        <div className="nt-edit-vibe-grid">
+          {VIBE_OPTIONS.map(v => (
+            <button
+              key={v.id}
+              className={`nt-edit-vibe-chip ${vibes.has(v.id) ? 'active' : ''}`}
+              onClick={() => toggleVibe(v.id)}
+            >
+              {v.emoji} {v.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Services */}
+        <p className="nt-edit-section-label">Services & Pricing</p>
+        <div className="nt-edit-services">
+          {services.map(svc => (
+            <div key={svc.id} className="nt-edit-svc-row">
+              <div className="nt-edit-svc-top">
+                <input
+                  className="nt-edit-svc-name"
+                  value={svc.name}
+                  onChange={e => updateSvc(svc.id, 'name', e.target.value)}
+                  placeholder="Service name"
+                />
+                <button className="nt-edit-svc-del" onClick={() => removeSvc(svc.id)}>✕</button>
+              </div>
+              <div className="nt-edit-svc-meta">
+                <span className="nt-edit-svc-pre">⏱</span>
+                <input
+                  className="nt-edit-svc-num"
+                  type="number" value={svc.duration} min={15} max={300} step={15}
+                  onChange={e => updateSvc(svc.id, 'duration', +e.target.value)}
+                />
+                <span className="nt-edit-svc-unit">min</span>
+                <span className="nt-edit-svc-pre" style={{ marginLeft: 12 }}>$</span>
+                <input
+                  className="nt-edit-svc-num"
+                  type="number" value={svc.price} min={0} max={999}
+                  onChange={e => updateSvc(svc.id, 'price', +e.target.value)}
+                />
+              </div>
+            </div>
+          ))}
+          <button className="nt-edit-add-svc" onClick={addSvc}>+ Add Service</button>
+        </div>
+
+        {/* Availability */}
+        <p className="nt-edit-section-label">Availability</p>
+        <div className="nt-edit-days">
+          {DAYS.map(day => (
+            <button
+              key={day}
+              className={`nt-edit-day-btn ${schedule[day]?.enabled ? 'on' : ''}`}
+              onClick={() => toggleDay(day)}
+            >
+              {day}
+            </button>
+          ))}
+        </div>
+
+        <button
+          className={`nt-edit-save-btn ${saved ? 'saved' : ''}`}
+          onClick={handleSave}
+          disabled={!canSave}
+        >
+          {saved ? 'Saved ✓' : 'Save Profile'}
+        </button>
+
+        <div style={{ height: 40 }} />
+      </div>
+    </div>
+  )
+}
+
 /* ── Screen ────────────────────────────────────────────── */
 
 export default function NailTechProfile({ profile, avgRating }) {
-  const [editModal, setEditModal] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [localProfile, setLocalProfile] = useState(null)
+
+  const src = localProfile ?? profile
 
   const displayRating = avgRating ?? '4.9'
-  const name      = profile?.name         || 'Your Name'
-  const bizName   = profile?.businessName || 'Glazd Studio'
-  const location  = profile?.location     || 'Los Angeles, CA'
-  const bio       = profile?.bio          || 'Every set tells a story. Let me tell yours — from concept to cuticle, I create nail art that\'s uniquely you.'
-  const vibes     = (profile?.vibes       || ['glam', 'softgirl', 'chrome', 'character']).slice(0, 6)
-  const services  = profile?.services     || [
+  const name      = src?.name         || 'Your Name'
+  const bizName   = src?.businessName || 'Glazd Studio'
+  const location  = src?.location     || 'Los Angeles, CA'
+  const bio       = src?.bio          || 'Every set tells a story. Let me tell yours — from concept to cuticle, I create nail art that\'s uniquely you.'
+  const vibes     = (src?.vibes       || ['glam', 'softgirl', 'chrome', 'character']).slice(0, 6)
+  const services  = src?.services     || [
     { id:1, name:'Builder Gel',   duration:60, price:65 },
     { id:2, name:'PolyGel',       duration:75, price:75 },
     { id:3, name:'Fill',          duration:45, price:45 },
     { id:4, name:'Character Art', duration:90, price:95 },
   ]
-  const schedule  = profile?.schedule     || {
+  const schedule  = src?.schedule     || {
     Mon:{enabled:true}, Tue:{enabled:true}, Wed:{enabled:true},
     Thu:{enabled:true}, Fri:{enabled:true}, Sat:{enabled:false}, Sun:{enabled:false},
   }
@@ -77,6 +240,18 @@ export default function NailTechProfile({ profile, avgRating }) {
   const totalReviews = Object.values(STAR_BREAKDOWN).reduce((a, b) => a + b, 0)
   const maxCount     = Math.max(...Object.values(STAR_BREAKDOWN))
 
+  if (editing) {
+    return (
+      <div className="nt-sub-screen">
+        <EditNTProfile
+          initData={{ name, businessName: bizName, location, bio, vibes, services, schedule }}
+          onSave={(updated) => { setLocalProfile(updated); setEditing(false) }}
+          onBack={() => setEditing(false)}
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="nt-sub-screen nt-profile-screen">
 
@@ -91,7 +266,7 @@ export default function NailTechProfile({ profile, avgRating }) {
           <span className="nt-star-gold" style={{ fontSize:'1.1rem' }}>★</span>
           <span className="nt-profile-rating-count">· {totalReviews} reviews</span>
         </div>
-        <button className="nt-profile-edit-btn" onClick={() => setEditModal(true)}>
+        <button className="nt-profile-edit-btn" onClick={() => setEditing(true)}>
           ✏️ Edit Profile
         </button>
       </div>
@@ -207,24 +382,6 @@ export default function NailTechProfile({ profile, avgRating }) {
       </div>
 
       <div style={{ height: 24 }} />
-
-      {/* ── Edit Profile modal ── */}
-      {editModal && (
-        <div className="nt-modal-overlay" onClick={() => setEditModal(false)}>
-          <div className="nt-modal-sheet" onClick={e => e.stopPropagation()} style={{ textAlign:'center' }}>
-            <div className="nt-modal-handle" />
-            <div className="nt-modal-icon">✏️</div>
-            <h3 className="nt-modal-title">Edit Profile</h3>
-            <p className="nt-modal-sub">
-              To update your profile, go back through the setup flow. Full in-app editing coming soon!
-            </p>
-            <div className="nt-modal-actions">
-              <button className="nt-modal-cancel" onClick={() => setEditModal(false)}>Cancel</button>
-              <button className="nt-modal-confirm" onClick={() => setEditModal(false)}>Got it</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

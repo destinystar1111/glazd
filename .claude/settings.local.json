@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run build 2>&1)",
-      "Bash(git add . && git status)"
+      "Bash(git add . && git status)",
+      "Bash(git commit -m \"$\\(cat <<'EOF'\nsettings, reviews, moodboard messages, edit profile\n\n- Settings screen: every option opens a real sub-screen \\(edit name/email/phone, change password, notification toggles, bank account, payout schedule, earnings history, privacy, location, visibility, FAQ, terms, policy, logout dialog\\)\n- Sign in: forgot password → reset email sent confirmation flow\n- Onboarding: added Create Account step \\(email/password/confirm\\) as step 0 for both client and nail tech flows\n- Discover: removed hamburger drawer, topbar now has bell + gear icons; removed superlike button, ✕ and ❤️ enlarged\n- Moodboard: \"Share with my tech\" opens match-selection modal with checkboxes; per-match sharedMoodboards map in App.jsx\n- NT dashboard: earnings card tappable, bell/gear header, moodboard tab, calendar client names tappable\n- Various: notifications screen, sign in screen, NT moodboard tab, story card vibe tags\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }

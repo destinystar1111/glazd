@@ -115,7 +115,7 @@ const OPENERS = [
   "I just shared my moodboard with you ✨",
 ]
 
-export default function DiscoverScreen({ onBook, onViewProfile, onSettings, onNotifications }) {
+export default function DiscoverScreen({ onBook, onViewProfile, onSettings, onNotifications, onChat }) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [offset,       setOffset]       = useState({ x: 0, y: 0 })
   const [isDragging,   setIsDragging]   = useState(false)
@@ -239,7 +239,7 @@ export default function DiscoverScreen({ onBook, onViewProfile, onSettings, onNo
 
       {/* ── Match overlay ── */}
       {matchUser && (
-        <MatchOverlay tech={matchUser} onClose={() => setMatchUser(null)} />
+        <MatchOverlay tech={matchUser} onClose={() => setMatchUser(null)} onChat={onChat} />
       )}
     </div>
   )
@@ -314,7 +314,7 @@ function NailTechCard({ tech, onBook, onViewProfile }) {
 
 /* ── Match overlay with Say Hello openers ── */
 
-function MatchOverlay({ tech, onClose }) {
+function MatchOverlay({ tech, onClose, onChat }) {
   const [sent,     setSent]     = useState(null)
   const [custom,   setCustom]   = useState('')
   const [showChat, setShowChat] = useState(false)
@@ -323,6 +323,21 @@ function MatchOverlay({ tech, onClose }) {
   const sendCustom = () => {
     if (!custom.trim()) return
     setSent(custom.trim()); setShowChat(true)
+  }
+
+  const goToChat = () => {
+    const matchObj = {
+      id:       tech.id,
+      name:     tech.name,
+      location: tech.location,
+      g:        tech.tiles?.[0]?.g ?? ['#f9c5d1', '#e8758a'],
+      icon:     tech.pfp,
+      isNew:    false,
+      lastMsg:  null,
+      time:     null,
+      unread:   false,
+    }
+    onChat?.(matchObj)
   }
 
   return (
@@ -358,7 +373,7 @@ function MatchOverlay({ tech, onClose }) {
           <div className="match-sent-wrap">
             <div className="match-sent-bubble">{sent}</div>
             <p className="match-sent-label">Message sent! ✨</p>
-            <button className="match-msg-btn" onClick={onClose}>Go to Chat →</button>
+            <button className="match-msg-btn" onClick={goToChat}>Go to Chat →</button>
           </div>
         )}
 

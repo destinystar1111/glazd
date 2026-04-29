@@ -80,7 +80,7 @@ const MONTHLY_APPTS = [
 
 /* ── Main Dashboard ────────────────────────────────────── */
 
-export default function NailTechDashboard({ profile, avgRating, onSettings, onNotifications }) {
+export default function NailTechDashboard({ profile, avgRating, onSettings, onNotifications, onShareBoard }) {
   const [appts,         setAppts]         = useState(INITIAL_APPTS)
   const [requests,      setRequests]      = useState(INITIAL_REQUESTS)
   const [accepted,      setAccepted]      = useState([])
@@ -136,7 +136,7 @@ export default function NailTechDashboard({ profile, avgRating, onSettings, onNo
           onClear={() => setCalendarClient(null)}
         />
       )}
-      {activeTab === 'moodboard' && <NailTechMoodboard />}
+      {activeTab === 'moodboard' && <NailTechMoodboard onShareBoard={onShareBoard} />}
       {activeTab === 'profile'   && <NailTechProfile profile={profile} avgRating={avgRating} onSettings={onSettings} />}
 
       {activeTab === 'dashboard' && (
@@ -733,10 +733,71 @@ const WEEKLY_BARS = [
 ]
 
 function EarningsBreakdownPanel({ onClose }) {
-  const maxBar     = Math.max(...WEEKLY_BARS.map(w => w.amount))
-  const totalPaid  = MONTHLY_APPTS.filter(a => a.paymentStatus === 'fully_paid').reduce((s,a) => s+a.amount, 0)
+  const [selectedWeek, setSelectedWeek] = useState(null)
+
+  const maxBar       = Math.max(...WEEKLY_BARS.map(w => w.amount))
+  const totalPaid    = MONTHLY_APPTS.filter(a => a.paymentStatus === 'fully_paid').reduce((s,a) => s+a.amount, 0)
   const totalPending = MONTHLY_APPTS.filter(a => a.paymentStatus !== 'fully_paid' && a.paymentStatus !== 'refunded').reduce((s,a) => s+a.amount, 0)
 
+  const getWeekAppts = (weekStr) => {
+    const parts = weekStr.replace('Apr ', '').split('–')
+    const start = parseInt(parts[0], 10)
+    const end   = parseInt(parts[1], 10)
+    return MONTHLY_APPTS.filter(a => {
+      const day = parseInt(a.date.replace('Apr ', ''), 10)
+      return day >= start && day <= end
+    })
+  }
+
+  /* ── Week drilldown ── */
+  if (selectedWeek) {
+    const weekAppts = getWeekAppts(selectedWeek)
+    const weekTotal = weekAppts.reduce((s, a) => s + a.amount, 0)
+    return (
+      <div className="nt-stat-panel">
+        <div className="nt-panel-header">
+          <button className="nt-panel-back" onClick={() => setSelectedWeek(null)}>← Back</button>
+          <h2 className="nt-panel-title">{selectedWeek}</h2>
+          <div style={{ width: 56 }} />
+        </div>
+        <div className="nt-panel-scroll">
+          <div className="nt-week-total-strip">
+            <p className="nt-week-total-label">Week Total</p>
+            <p className="nt-week-total-amt">${weekTotal}</p>
+            <p className="nt-week-total-count">
+              {weekAppts.length} appointment{weekAppts.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          {weekAppts.length === 0 ? (
+            <p className="nt-earn-empty">No appointments this week</p>
+          ) : (
+            <div className="nt-earn-list">
+              {weekAppts.map(appt => {
+                const status = PAY_STATUS[appt.paymentStatus]
+                return (
+                  <div key={appt.id} className="nt-earn-row">
+                    <div className="nt-month-avatar">{appt.avatar}</div>
+                    <div className="nt-earn-row-info">
+                      <div className="nt-earn-row-client">{appt.client}</div>
+                      <div className="nt-earn-row-meta">{appt.service} · {appt.date}</div>
+                    </div>
+                    <div className="nt-earn-row-right">
+                      <div className="nt-earn-row-amount">${appt.amount}</div>
+                      <span className={`nt-pay-pill ${status.cls}`} style={{ fontSize:'0.6rem' }}>
+                        {status.label}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  /* ── Main breakdown view ── */
   let running = 0
 
   return (
@@ -751,12 +812,16 @@ function EarningsBreakdownPanel({ onClose }) {
 
         {/* ── Weekly bar chart ── */}
         <div className="nt-earn-chart-wrap">
-          <p className="nt-earn-chart-title">Earnings by Week</p>
+          <p className="nt-earn-chart-title">Tap a bar for details</p>
           <div className="nt-earn-chart">
             {WEEKLY_BARS.map(bar => {
               const pct = maxBar > 0 ? (bar.amount / maxBar) * 100 : 0
               return (
-                <div key={bar.week} className="nt-earn-bar-col">
+                <button
+                  key={bar.week}
+                  className="nt-earn-bar-col nt-earn-bar-tap"
+                  onClick={() => setSelectedWeek(bar.week)}
+                >
                   <div className="nt-earn-bar-track">
                     <div
                       className="nt-earn-bar-fill"
@@ -765,7 +830,7 @@ function EarningsBreakdownPanel({ onClose }) {
                   </div>
                   <div className="nt-earn-bar-val">${bar.amount}</div>
                   <div className="nt-earn-bar-label">{bar.week.split('–')[0]}</div>
-                </div>
+                </button>
               )
             })}
           </div>

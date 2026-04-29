@@ -25,7 +25,7 @@ import { ALL_MATCHES }      from './screens/MatchesScreen'
 const MAIN_TABS   = ['discover', 'matches', 'moodboard', 'profile']
 const UNREAD_COUNT = ALL_MATCHES.filter((m) => m.unread).length
 
-function MainApp({ activeTab, setActiveTab, userProfile, onRate, onSettings, onNotifications, onLogout, sharedMoodboards, onShareToTech }) {
+function MainApp({ activeTab, setActiveTab, userProfile, onRate, onSettings, onNotifications, onLogout, sharedMoodboards, onShareToTech, ntBoardShares }) {
   const [chatUser,    setChatUser]    = useState(null)
   const [bookingTech, setBookingTech] = useState(null)
   const [viewingTech, setViewingTech] = useState(null)
@@ -69,6 +69,7 @@ function MainApp({ activeTab, setActiveTab, userProfile, onRate, onSettings, onN
             onBook={openBook}
             onRate={onRate}
             sharedMoodboard={sharedMoodboards?.[chatUser.id] ?? null}
+            ntSharedBoards={ntBoardShares?.[chatUser.id] ?? []}
           />
         ) : (
           <>
@@ -78,6 +79,7 @@ function MainApp({ activeTab, setActiveTab, userProfile, onRate, onSettings, onN
                 onViewProfile={openProfile}
                 onSettings={onSettings}
                 onNotifications={onNotifications}
+                onChat={openChat}
               />
             )}
             {activeTab === 'matches'   && <MatchesScreen onChat={openChat} />}
@@ -117,6 +119,7 @@ export default function App() {
   const [settingsFrom,    setSettingsFrom]    = useState('discover')
   const [notifsFrom,      setNotifsFrom]      = useState('discover')
   const [sharedMoodboards, setSharedMoodboards] = useState({})
+  const [ntBoardShares,   setNtBoardShares]   = useState({})
 
   const isMain = MAIN_TABS.includes(screen)
 
@@ -142,6 +145,16 @@ export default function App() {
     setSharedMoodboards(prev => {
       const next = { ...prev }
       matchIds.forEach(id => { next[id] = vibes })
+      return next
+    })
+  }
+
+  const handleNTShareBoard = (boardLabel, vibes, clientIds) => {
+    setNtBoardShares(prev => {
+      const next = { ...prev }
+      clientIds.forEach(id => {
+        next[id] = [...(next[id] ?? []), { boardLabel, vibes }]
+      })
       return next
     })
   }
@@ -191,12 +204,14 @@ export default function App() {
           avgRating={avgRating}
           onSettings={() => openSettings('ntDash')}
           onNotifications={() => openNotifs('ntDash')}
+          onShareBoard={handleNTShareBoard}
         />
       )}
 
       {screen === 'settings' && (
         <SettingsScreen
           onBack={() => setScreen(settingsFrom)}
+          onLogout={() => setScreen('splash')}
           isNailTech={settingsFrom === 'ntDash'}
         />
       )}
@@ -226,6 +241,7 @@ export default function App() {
           onLogout={() => setScreen('splash')}
           sharedMoodboards={sharedMoodboards}
           onShareToTech={handleShareToTech}
+          ntBoardShares={ntBoardShares}
         />
       )}
     </div>

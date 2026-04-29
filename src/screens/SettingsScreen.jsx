@@ -415,7 +415,7 @@ function ProfileVisibility({ onBack }) {
   const options = [
     { key: 'everyone',  label: 'Everyone',       sub: 'Any nail tech on Glazd can see you' },
     { key: 'matches',   label: 'Matches only',   sub: 'Only techs you have matched with' },
-    { key: 'private',   label: 'Private',        sub: 'Hidden from discovery' },
+    { key: 'private_location', label: 'Private Location', sub: 'Profile visible, exact location hidden · shows general area like "Phoenix Area"' },
   ]
 
   return (
@@ -569,7 +569,7 @@ function LogoutConfirm({ onConfirm, onCancel }) {
 
 /* ── Main Settings Screen ── */
 
-export default function SettingsScreen({ onBack, isNailTech = false }) {
+export default function SettingsScreen({ onBack, onLogout, isNailTech = false }) {
   const [view,       setView]       = useState('main')
   const [showLogout, setShowLogout] = useState(false)
   const [showDelete, setShowDelete] = useState(false)
@@ -674,7 +674,7 @@ export default function SettingsScreen({ onBack, isNailTech = false }) {
               <button className="settings-delete-cancel-btn" onClick={() => setShowDelete(false)}>
                 Cancel
               </button>
-              <button className="settings-delete-forever-btn" onClick={onBack}>
+              <button className="settings-delete-forever-btn" onClick={() => onLogout?.()}>
                 Delete Forever
               </button>
             </div>
@@ -687,7 +687,7 @@ export default function SettingsScreen({ onBack, isNailTech = false }) {
       {/* ── Logout confirmation overlay ── */}
       {showLogout && (
         <LogoutConfirm
-          onConfirm={onBack}
+          onConfirm={() => { setShowLogout(false); onLogout?.() }}
           onCancel={() => setShowLogout(false)}
         />
       )}
