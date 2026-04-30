@@ -1729,9 +1729,10 @@
    ============================ */
 
 .chat-screen {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  height: 100%;
   overflow: hidden;
   background: var(--blush);
 }
@@ -1809,6 +1810,7 @@
 
 .chat-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 16px 16px 8px;
@@ -1875,6 +1877,32 @@
   font-size: 0.88rem;
   color: var(--text-muted);
 }
+
+/* NT chat wrapper — replaces .nt-sub-screen when showing chat.
+   .nt-bottom-nav is position:absolute so sub-screens fill the FULL
+   screen height; padding-bottom pushes the input above the 72px nav. */
+.nt-chat-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 72px;
+}
+
+/* NT messages area (used by NTChatView) */
+.chat-msgs {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  scrollbar-width: none;
+}
+.chat-msgs::-webkit-scrollbar { display: none; }
 
 /* bubble list */
 .chat-bubble-list {
@@ -2314,6 +2342,84 @@
 .bk-date-pill.sel .bk-day-num,
 .bk-date-pill.sel .bk-day-month {
   color: #fff;
+}
+
+/* ── Booking calendar ── */
+.bk-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.bk-cal-arrow {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(196,96,122,0.22);
+  background: #fff;
+  color: var(--rose-dark);
+  font-size: 1.3rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.bk-cal-arrow:not(:disabled):hover { background: rgba(196,96,122,0.07); }
+.bk-cal-arrow:disabled { opacity: 0.28; cursor: default; }
+.bk-cal-month {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #3d2535;
+  margin: 0;
+  text-align: center;
+}
+.bk-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.bk-cal-wday {
+  text-align: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--mauve);
+  padding: 4px 0 6px;
+}
+.bk-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.bk-cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #3d2535;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.bk-cal-day:not(.past):not(.sel):hover { background: rgba(196,96,122,0.1); }
+.bk-cal-day.sel {
+  background: linear-gradient(135deg, var(--rose-dark), #ad4e67);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(196,96,122,0.32);
+}
+.bk-cal-day.past {
+  color: rgba(155,107,122,0.3);
+  cursor: default;
 }
 
 /* Time slots */
@@ -7680,6 +7786,31 @@
 }
 .nt-mb-header {
   padding: 20px 18px 8px;
+  flex-shrink: 0;
+}
+.nt-mb-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.nt-mb-board-share-btn {
+  flex-shrink: 0;
+  padding: 7px 13px;
+  border-radius: 20px;
+  border: 1.5px solid var(--rose-dark);
+  background: transparent;
+  color: var(--rose-dark);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+.nt-mb-board-share-btn:active {
+  background: rgba(196,96,122,0.08);
 }
 .nt-mb-title {
   font-family: 'Playfair Display', Georgia, serif;
@@ -7818,19 +7949,53 @@
   font-weight: 600;
   color: rgba(196,96,122,0.55);
 }
+.nt-mb-vibe-share-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  background: linear-gradient(135deg, rgba(196,96,122,0.06), rgba(245,213,222,0.18));
+  border-top: 1px solid rgba(196,96,122,0.12);
+}
+.nt-mb-vibe-share-count {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  color: var(--mauve);
+}
+.nt-mb-vibe-share-btn {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: 20px;
+  border: none;
+  background: linear-gradient(135deg, var(--rose-dark), #ad4e67);
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 3px 12px rgba(196,96,122,0.28);
+  transition: opacity 0.15s;
+}
+.nt-mb-vibe-share-btn:active { opacity: 0.85; }
+
 .nt-mb-footer {
-  padding: 12px 18px 16px;
+  padding: 10px 18px 12px;
   border-top: 1px solid rgba(196,96,122,0.08);
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
 }
 .nt-mb-count {
   font-family: 'DM Sans', sans-serif;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   color: var(--mauve);
   margin: 0;
   text-align: center;
+  min-height: 1em;
 }
 .nt-mb-toast {
   background: rgba(196,96,122,0.1);

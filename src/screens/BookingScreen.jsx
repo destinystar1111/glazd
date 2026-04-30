@@ -69,16 +69,21 @@ const SPARK_SIZES  = [8, 7, 11, 8, 6, 10, 7, 9, 7, 10, 6, 11, 6, 7, 6, 8, 7, 6, 
 const D_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const M_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-function getNext7Days() {
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() + i + 1)
-    return d
-  })
-}
+// Module-level: stable reference, never recreated mid-render
+const TODAY_MID = new Date()
+TODAY_MID.setHours(0, 0, 0, 0)
 
 function fmtDate(d) {
   return `${D_NAMES[d.getDay()]}, ${M_NAMES[d.getMonth()]} ${d.getDate()}`
+}
+
+function getMonthDays(year, month) {
+  const firstDow    = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells = []
+  for (let i = 0; i < firstDow; i++) cells.push(null)
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+  return cells
 }
 
 /* ── Card input formatting ────────────────────────────────── */
@@ -225,13 +230,13 @@ async function buildStoryCard(tech) {
 /* ── Main component ───────────────────────────────────────── */
 
 export default function BookingScreen({ tech, onBack }) {
-  const days = getNext7Days()
-
-  const [stage,    setStage]    = useState('form')
-  const [service,  setService]  = useState(null)
-  const [dayIdx,   setDayIdx]   = useState(null)
-  const [timeVal,  setTimeVal]  = useState(null)
-  const [notes,    setNotes]    = useState('')
+  const [stage,        setStage]        = useState('form')
+  const [service,      setService]      = useState(null)
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [viewYear,     setViewYear]     = useState(TODAY_MID.getFullYear())
+  const [viewMonth,    setViewMonth]    = useState(TODAY_MID.getMonth())
+  const [timeVal,      setTimeVal]      = useState(null)
+  const [notes,        setNotes]        = useState('')
 
   // Payment step state
   const [cardName, setCardName] = useState('')
@@ -239,16 +244,34 @@ export default function BookingScreen({ tech, onBack }) {
   const [expiry,   setExpiry]   = useState('')
   const [cvv,      setCvv]      = useState('')
 
-  const ready      = service !== null && dayIdx !== null && timeVal !== null
-  const avail      = dayIdx !== null ? AVAIL[dayIdx] : null
+  const canGoPrev = viewYear > TODAY_MID.getFullYear() ||
+    (viewYear === TODAY_MID.getFullYear() && viewMonth > TODAY_MID.getMonth())
+
+  const prevMonth = () => {
+    if (!canGoPrev) return
+    setSelectedDate(null)
+    setTimeVal(null)
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1) }
+    else setViewMonth(m => m - 1)
+  }
+  const nextMonth = () => {
+    setSelectedDate(null)
+    setTimeVal(null)
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1) }
+    else setViewMonth(m => m + 1)
+  }
+
+  const avail       = selectedDate ? AVAIL[(selectedDate.getDate() - 1) % 7] : null
+  const ready       = service !== null && selectedDate !== null && timeVal !== null
   const selectedSvc = SERVICES.find(s => s.id === service)
-  const cardReady  = cardName.trim().length > 1
+  const dateStr     = selectedDate ? fmtDate(selectedDate) : ''
+  const cardReady   = cardName.trim().length > 1
     && cardNum.replace(/\s/g, '').length === 16
     && expiry.length === 5
     && cvv.length >= 3
 
-  const cancelDeadline = dayIdx !== null && timeVal
-    ? getCancelDeadline(days[dayIdx], timeVal)
+  const cancelDeadline = selectedDate && timeVal
+    ? getCancelDeadline(selectedDate, timeVal)
     : null
 
   const handleConfirm = () => { if (ready) setStage('payment') }
@@ -272,7 +295,7 @@ export default function BookingScreen({ tech, onBack }) {
       <ConfirmScreen
         tech={tech}
         svc={selectedSvc}
-        date={fmtDate(days[dayIdx])}
+        date={dateStr}
         time={timeVal}
         cancelDeadline={cancelDeadline}
         onBack={onBack}
@@ -286,7 +309,7 @@ export default function BookingScreen({ tech, onBack }) {
       <PaymentStage
         tech={tech}
         svc={selectedSvc}
-        date={fmtDate(days[dayIdx])}
+        date={dateStr}
         time={timeVal}
         cardName={cardName}  setCardName={setCardName}
         cardNum={cardNum}    setCardNum={setCardNum}
@@ -342,19 +365,45 @@ export default function BookingScreen({ tech, onBack }) {
           </div>
         </div>
 
-        {/* Date */}
+        {/* Date — monthly calendar */}
         <div className="bk-section">
           <p className="bk-section-title">Pick a Date</p>
-          <div className="bk-date-row">
-            {days.map((d, i) => (
-              <button key={i}
-                className={`bk-date-pill ${dayIdx === i ? 'sel' : ''}`}
-                onClick={() => { setDayIdx(i); setTimeVal(null) }}>
-                <span className="bk-day-name">{D_NAMES[d.getDay()]}</span>
-                <span className="bk-day-num">{d.getDate()}</span>
-                <span className="bk-day-month">{M_NAMES[d.getMonth()]}</span>
-              </button>
+
+          {/* Month nav */}
+          <div className="bk-cal-header">
+            <button className="bk-cal-arrow" onClick={prevMonth} disabled={!canGoPrev}>‹</button>
+            <p className="bk-cal-month">{M_NAMES[viewMonth]} {viewYear}</p>
+            <button className="bk-cal-arrow" onClick={nextMonth}>›</button>
+          </div>
+
+          {/* Weekday labels */}
+          <div className="bk-cal-weekdays">
+            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+              <span key={d} className="bk-cal-wday">{d}</span>
             ))}
+          </div>
+
+          {/* Day grid */}
+          <div className="bk-cal-grid">
+            {getMonthDays(viewYear, viewMonth).map((day, i) => {
+              if (!day) return <div key={`e${i}`} />
+              const date    = new Date(viewYear, viewMonth, day)
+              const isPast  = date <= TODAY_MID
+              const isSel   = selectedDate &&
+                selectedDate.getFullYear() === viewYear &&
+                selectedDate.getMonth()    === viewMonth &&
+                selectedDate.getDate()     === day
+              return (
+                <button
+                  key={day}
+                  className={`bk-cal-day${isSel ? ' sel' : ''}${isPast ? ' past' : ''}`}
+                  onClick={() => { if (!isPast) { setSelectedDate(date); setTimeVal(null) } }}
+                  disabled={isPast}
+                >
+                  {day}
+                </button>
+              )
+            })}
           </div>
         </div>
 
@@ -402,7 +451,7 @@ export default function BookingScreen({ tech, onBack }) {
         {ready && (
           <div className="bk-summary">
             <span className="bk-summary-text">
-              {selectedSvc?.name} · {fmtDate(days[dayIdx])}
+              {selectedSvc?.name} · {dateStr}
             </span>
             <span className="bk-summary-price">${selectedSvc?.price}</span>
           </div>

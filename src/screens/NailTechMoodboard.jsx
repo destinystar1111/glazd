@@ -219,8 +219,18 @@ export default function NailTechMoodboard({ onShareBoard }) {
 
       {/* Header */}
       <div className="nt-mb-header">
-        <h2 className="nt-mb-title">Style Boards</h2>
-        <p className="nt-mb-sub">curate & share your aesthetic</p>
+        <div className="nt-mb-header-row">
+          <div>
+            <h2 className="nt-mb-title">Style Boards</h2>
+            <p className="nt-mb-sub">curate & share your aesthetic</p>
+          </div>
+          <button
+            className="nt-mb-board-share-btn"
+            onClick={() => setShareModal(true)}
+          >
+            {currentBoard.icon} Share Board ↗
+          </button>
+        </div>
       </div>
 
       {/* Board tabs (horizontal scroll pills) */}
@@ -276,20 +286,25 @@ export default function NailTechMoodboard({ onShareBoard }) {
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Share selected vibes bar — appears when any vibes are checked */}
+      {currentVibes.size > 0 && (
+        <div className="nt-mb-vibe-share-bar">
+          <span className="nt-mb-vibe-share-count">
+            <strong>{currentVibes.size}</strong> vibe{currentVibes.size !== 1 ? 's' : ''} selected
+          </span>
+          <button className="nt-mb-vibe-share-btn" onClick={() => setShareModal(true)}>
+            Share selected vibes ↗
+          </button>
+        </div>
+      )}
+
+      {/* Footer — count hint only */}
       <div className="nt-mb-footer">
         <p className="nt-mb-count">
-          {currentVibes.size > 0
-            ? <><strong>{currentVibes.size}</strong> vibe{currentVibes.size !== 1 ? 's' : ''} in this board</>
-            : <span style={{ opacity:0.55 }}>Tap vibes to add them to this board</span>
-          }
+          {currentVibes.size === 0 && (
+            <span style={{ opacity:0.55 }}>Tap vibes to add them to this board</span>
+          )}
         </p>
-        <button
-          className="btn-primary"
-          onClick={() => setShareModal(true)}
-        >
-          Share Board ✦
-        </button>
       </div>
 
       {/* Share modal */}

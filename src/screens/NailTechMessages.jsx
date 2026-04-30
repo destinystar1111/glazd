@@ -46,7 +46,7 @@ function NTChatView({ thread, onBack }) {
   const [messages, setMessages] = useState(NT_SEED_MSGS[thread.id] ?? [])
   const [draft, setDraft]       = useState('')
   const bottomRef               = useRef(null)
-  let   msgId                   = 100
+  const msgIdRef                = useRef(100)   // persists across renders
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -55,7 +55,7 @@ function NTChatView({ thread, onBack }) {
   const sendMessage = () => {
     const text = draft.trim()
     if (!text) return
-    setMessages(prev => [...prev, { id: msgId++, from: 'me', text, time: 'Just now' }])
+    setMessages(prev => [...prev, { id: msgIdRef.current++, from: 'me', text, time: 'Just now' }])
     setDraft('')
   }
 
@@ -128,7 +128,7 @@ export default function NailTechMessages() {
 
   if (activeThread) {
     return (
-      <div className="nt-sub-screen">
+      <div className="nt-chat-wrap">
         <NTChatView thread={activeThread} onBack={() => setActiveThread(null)} />
       </div>
     )
