@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import './App.css'
+import { MessagesContext } from './MessagesContext'
 
 import SplashScreen         from './screens/SplashScreen'
 import SignInScreen         from './screens/SignInScreen'
@@ -20,12 +21,62 @@ import NotificationsScreen  from './screens/NotificationsScreen'
 import BottomNav            from './components/BottomNav'
 import { ALL_MATCHES }      from './screens/MatchesScreen'
 
+/* ── Shared message thread seeds ─────────────────────────── */
+
+const INITIAL_THREADS = {
+  1: [
+    { id:1, from:'client', text:"Hi! Just confirmed my booking 💅", time:'2 days ago' },
+    { id:2, from:'tech',   text:'Perfect! I have your appointment set for May 2nd at 2pm', time:'2 days ago' },
+    { id:3, from:'client', text:"I'm thinking glazed chrome with soft pink tips 🪞", time:'1 day ago' },
+    { id:4, from:'tech',   text:'Love that combo — I can already picture it ✨', time:'1 day ago' },
+    { id:5, from:'client', text:"Can't wait for my appointment! 💕", time:'2m' },
+  ],
+  2: [
+    { id:1, from:'tech',   text:'Hi! I saw your preferences and I love your taste ✨', time:'2:14 PM' },
+    { id:2, from:'tech',   text:'Witchy and character art are literally my specialties 🖤', time:'2:15 PM' },
+    { id:3, from:'tech',   text:"I think we'd be a perfect match ✨", time:'2:16 PM' },
+    { id:4, from:'client', text:"Hey! So excited we matched 🖤", time:'3 days ago' },
+    { id:5, from:'tech',   text:'Same! Your witchy aesthetic is everything 💅', time:'3 days ago' },
+    { id:6, from:'client', text:"I just shared my inspo pics 🖤", time:'1h' },
+  ],
+  3: [
+    { id:1, from:'tech',   text:'Hey gorgeous! 💕 So excited to be matched with you!', time:'10:30 AM' },
+    { id:2, from:'client', text:'Omg your portfolio is EVERYTHING 😭💎 I need those rhinestone sets', time:'10:32 AM' },
+    { id:3, from:'tech',   text:"Yesss let's book you in! Do you have a date in mind?", time:'10:33 AM' },
+    { id:4, from:'client', text:'What about this Saturday?', time:'11:00 AM' },
+    { id:5, from:'tech',   text:"Perfect! Can't wait to see you on Saturday! 💕", time:'11:02 AM' },
+    { id:6, from:'client', text:'See you Saturday at 2pm! 💕', time:'2d' },
+  ],
+  5: [
+    { id:1, from:'tech',   text:'Hello! Noticed we matched 🪞✨', time:'2 days ago' },
+    { id:2, from:'client', text:'Raven your glazed chrome sets are unreal, I need them immediately', time:'2 days ago' },
+    { id:3, from:'tech',   text:"Thank you so much! I'd love to do a set for you 🤍", time:'2 days ago' },
+    { id:4, from:'client', text:'Yes please! How do I book?', time:'2 days ago' },
+    { id:5, from:'tech',   text:"Sounds good! I'll send you the booking link", time:'Yesterday' },
+    { id:6, from:'client', text:"I'll send the deposit shortly", time:'3d' },
+  ],
+  6: [
+    { id:1, from:'tech',   text:'Bonjour! So lovely to match with you ✨', time:'3 days ago' },
+    { id:2, from:'client', text:'Your minimalist French tips are perfection 😍', time:'3 days ago' },
+    { id:3, from:'tech',   type:'moodboard',
+      vibes: [
+        { name:'Glazed Chrome', icon:'🪞', g:['#dde0f5','#b8c0ee'] },
+        { name:'Quiet Luxury',  icon:'🤍', g:['#fdf8f5','#f0e8e0'] },
+      ],
+      text: "Here's some inspo I put together for you ✨",
+      time:'2 days ago',
+    },
+    { id:4, from:'tech',   text:'I love your clean aesthetic — these styles would suit you perfectly', time:'2 days ago' },
+    { id:5, from:'client', text:'Your moodboard is gorgeous 🤍', time:'Yesterday' },
+  ],
+}
+
 /* ── Main app (post-onboarding) ──────────────────────────── */
 
 const MAIN_TABS   = ['discover', 'matches', 'moodboard', 'profile']
 const UNREAD_COUNT = ALL_MATCHES.filter((m) => m.unread).length
 
-function MainApp({ activeTab, setActiveTab, userProfile, onRate, onSettings, onNotifications, onLogout, sharedMoodboards, onShareToTech, ntBoardShares }) {
+function MainApp({ activeTab, setActiveTab, userProfile, onRate, onSettings, onNotifications, onLogout, onShareToTech }) {
   const [chatUser,    setChatUser]    = useState(null)
   const [bookingTech, setBookingTech] = useState(null)
   const [viewingTech, setViewingTech] = useState(null)
@@ -68,8 +119,6 @@ function MainApp({ activeTab, setActiveTab, userProfile, onRate, onSettings, onN
             onBack={closeChat}
             onBook={openBook}
             onRate={onRate}
-            sharedMoodboard={sharedMoodboards?.[chatUser.id] ?? null}
-            ntSharedBoards={ntBoardShares?.[chatUser.id] ?? []}
           />
         ) : (
           <>
@@ -118,9 +167,26 @@ export default function App() {
   const [ratings,         setRatings]         = useState([])
   const [settingsFrom,    setSettingsFrom]    = useState('discover')
   const [notifsFrom,      setNotifsFrom]      = useState('discover')
-  const [sharedMoodboards,  setSharedMoodboards]  = useState({})
-  const [ntBoardShares,     setNtBoardShares]     = useState({})
   const [ntDashInitialTab,  setNtDashInitialTab]  = useState('dashboard')
+
+  /* ── Shared messages context ── */
+  const [threadMessages, setThreadMessages] = useState(INITIAL_THREADS)
+
+  const sendMessage = (threadId, text, role) => {
+    setThreadMessages(prev => ({
+      ...prev,
+      [threadId]: [...(prev[threadId] ?? []), { id: Date.now() + Math.random(), from: role, text, time: 'Just now' }],
+    }))
+  }
+
+  const addMoodboardMsg = (threadId, msg) => {
+    setThreadMessages(prev => ({
+      ...prev,
+      [threadId]: [...(prev[threadId] ?? []), msg],
+    }))
+  }
+
+  const msgCtx = { threads: threadMessages, sendMessage, addMoodboardMsg }
 
   const isMain = MAIN_TABS.includes(screen)
 
@@ -143,10 +209,15 @@ export default function App() {
   }
 
   const handleShareToTech = (vibes, matchIds) => {
-    setSharedMoodboards(prev => {
-      const next = { ...prev }
-      matchIds.forEach(id => { next[id] = vibes })
-      return next
+    matchIds.forEach(id => {
+      addMoodboardMsg(id, {
+        id: Date.now() + id,
+        from: 'client',
+        type: 'moodboard',
+        vibes,
+        text: "Here's my moodboard for inspo! ✨",
+        time: 'Just now',
+      })
     })
   }
 
@@ -176,16 +247,21 @@ export default function App() {
   }
 
   const handleNTShareBoard = (boardLabel, vibes, clientIds) => {
-    setNtBoardShares(prev => {
-      const next = { ...prev }
-      clientIds.forEach(id => {
-        next[id] = [...(next[id] ?? []), { boardLabel, vibes }]
+    clientIds.forEach(id => {
+      addMoodboardMsg(id, {
+        id: Date.now() + id,
+        from: 'tech',
+        type: 'moodboard',
+        boardLabel,
+        vibes,
+        text: `Here's my ${boardLabel} board for inspo ✨`,
+        time: 'Just now',
       })
-      return next
     })
   }
 
   return (
+    <MessagesContext.Provider value={msgCtx}>
     <div className="phone-shell">
 
       {screen === 'splash' && (
@@ -267,11 +343,10 @@ export default function App() {
           onSettings={() => openSettings(screen)}
           onNotifications={() => openNotifs(screen)}
           onLogout={() => setScreen('splash')}
-          sharedMoodboards={sharedMoodboards}
           onShareToTech={handleShareToTech}
-          ntBoardShares={ntBoardShares}
         />
       )}
     </div>
+    </MessagesContext.Provider>
   )
 }

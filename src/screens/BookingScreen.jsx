@@ -231,7 +231,7 @@ async function buildStoryCard(tech) {
 
 export default function BookingScreen({ tech, onBack }) {
   const [stage,        setStage]        = useState('form')
-  const [service,      setService]      = useState(null)
+  const [services,     setServices]     = useState(new Set())
   const [selectedDate, setSelectedDate] = useState(null)
   const [viewYear,     setViewYear]     = useState(TODAY_MID.getFullYear())
   const [viewMonth,    setViewMonth]    = useState(TODAY_MID.getMonth())
@@ -261,11 +261,18 @@ export default function BookingScreen({ tech, onBack }) {
     else setViewMonth(m => m + 1)
   }
 
-  const avail       = selectedDate ? AVAIL[(selectedDate.getDate() - 1) % 7] : null
-  const ready       = service !== null && selectedDate !== null && timeVal !== null
-  const selectedSvc = SERVICES.find(s => s.id === service)
-  const dateStr     = selectedDate ? fmtDate(selectedDate) : ''
-  const cardReady   = cardName.trim().length > 1
+  const toggleService = (id) => setServices(prev => {
+    const next = new Set(prev)
+    next.has(id) ? next.delete(id) : next.add(id)
+    return next
+  })
+
+  const avail        = selectedDate ? AVAIL[(selectedDate.getDate() - 1) % 7] : null
+  const selectedSvcs = SERVICES.filter(s => services.has(s.id))
+  const totalPrice   = selectedSvcs.reduce((sum, s) => sum + s.price, 0)
+  const ready        = services.size > 0 && selectedDate !== null && timeVal !== null
+  const dateStr      = selectedDate ? fmtDate(selectedDate) : ''
+  const cardReady    = cardName.trim().length > 1
     && cardNum.replace(/\s/g, '').length === 16
     && expiry.length === 5
     && cvv.length >= 3
@@ -276,6 +283,9 @@ export default function BookingScreen({ tech, onBack }) {
 
   const handleConfirm = () => { if (ready) setStage('payment') }
   const handlePay     = () => { if (cardReady) setStage('confirmed') }
+  const svcLabel      = selectedSvcs.length > 0
+    ? selectedSvcs.map(s => s.name).join(' + ')
+    : ''
 
   const handleShare = async () => {
     const cv = await buildStoryCard(tech)
@@ -294,7 +304,8 @@ export default function BookingScreen({ tech, onBack }) {
     return (
       <ConfirmScreen
         tech={tech}
-        svc={selectedSvc}
+        svcs={selectedSvcs}
+        total={totalPrice}
         date={dateStr}
         time={timeVal}
         cancelDeadline={cancelDeadline}
@@ -308,7 +319,8 @@ export default function BookingScreen({ tech, onBack }) {
     return (
       <PaymentStage
         tech={tech}
-        svc={selectedSvc}
+        svcs={selectedSvcs}
+        total={totalPrice}
         date={dateStr}
         time={timeVal}
         cardName={cardName}  setCardName={setCardName}
@@ -345,24 +357,35 @@ export default function BookingScreen({ tech, onBack }) {
 
         {/* Services */}
         <div className="bk-section">
-          <p className="bk-section-title">Choose a Service</p>
+          <p className="bk-section-title">Choose Services</p>
           <div className="bk-service-list">
-            {SERVICES.map(svc => (
-              <button key={svc.id}
-                className={`bk-service-card ${service === svc.id ? 'sel' : ''} ${svc.isAddon ? 'addon' : ''}`}
-                onClick={() => setService(svc.id)}>
-                <div className="bk-svc-left">
-                  {svc.isAddon && <span className="addon-badge">Add-on</span>}
-                  <p className="bk-svc-name">{svc.name}</p>
-                  <p className="bk-svc-meta">{svc.duration} · {svc.desc}</p>
-                </div>
-                <div className="bk-svc-right">
-                  <span className="bk-svc-price">{svc.isAddon ? '+' : ''}${svc.price}</span>
-                  <div className="bk-radio"><div className="bk-radio-dot" /></div>
-                </div>
-              </button>
-            ))}
+            {SERVICES.map(svc => {
+              const isSel = services.has(svc.id)
+              return (
+                <button key={svc.id}
+                  className={`bk-service-card ${isSel ? 'sel' : ''} ${svc.isAddon ? 'addon' : ''}`}
+                  onClick={() => toggleService(svc.id)}>
+                  <div className="bk-svc-left">
+                    {svc.isAddon && <span className="addon-badge">Add-on</span>}
+                    <p className="bk-svc-name">{svc.name}</p>
+                    <p className="bk-svc-meta">{svc.duration} · {svc.desc}</p>
+                  </div>
+                  <div className="bk-svc-right">
+                    <span className="bk-svc-price">{svc.isAddon ? '+' : ''}${svc.price}</span>
+                    <div className={`bk-checkbox ${isSel ? 'checked' : ''}`}>
+                      {isSel && <span className="bk-checkbox-mark">✓</span>}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
+          {services.size > 1 && (
+            <div className="bk-svc-total-row">
+              <span className="bk-svc-total-label">{services.size} services selected</span>
+              <span className="bk-svc-total-price">${totalPrice} total</span>
+            </div>
+          )}
         </div>
 
         {/* Date — monthly calendar */}
@@ -411,7 +434,7 @@ export default function BookingScreen({ tech, onBack }) {
         <div className="bk-section">
           <p className="bk-section-title">
             Pick a Time
-            {dayIdx === null && <span className="bk-section-hint"> — select a date first</span>}
+            {selectedDate === null && <span className="bk-section-hint"> — select a date first</span>}
           </p>
           <div className="bk-time-grid">
             {SLOTS.map((t, i) => {
@@ -419,9 +442,9 @@ export default function BookingScreen({ tech, onBack }) {
               const isSel   = timeVal === t
               return (
                 <button key={t}
-                  className={`bk-time-slot ${isSel ? 'sel' : ''} ${(!isAvail || dayIdx === null) ? 'unavail' : ''}`}
-                  onClick={() => isAvail && dayIdx !== null && setTimeVal(t)}
-                  disabled={!isAvail || dayIdx === null}>
+                  className={`bk-time-slot ${isSel ? 'sel' : ''} ${(!isAvail || selectedDate === null) ? 'unavail' : ''}`}
+                  onClick={() => isAvail && selectedDate !== null && setTimeVal(t)}
+                  disabled={!isAvail || selectedDate === null}>
                   <span className="bk-slot-time">{t}</span>
                   {!isAvail && <span className="bk-booked-tag">Booked</span>}
                 </button>
@@ -451,9 +474,9 @@ export default function BookingScreen({ tech, onBack }) {
         {ready && (
           <div className="bk-summary">
             <span className="bk-summary-text">
-              {selectedSvc?.name} · {dateStr}
+              {svcLabel} · {dateStr}
             </span>
-            <span className="bk-summary-price">${selectedSvc?.price}</span>
+            <span className="bk-summary-price">${totalPrice}</span>
           </div>
         )}
         <p className="bk-deposit-note">A $25 deposit is required · cancellation policy applies</p>
@@ -467,7 +490,7 @@ export default function BookingScreen({ tech, onBack }) {
 
 /* ── Payment stage ────────────────────────────────────────── */
 
-function PaymentStage({ tech, svc, date, time, cardName, setCardName, cardNum, setCardNum, expiry, setExpiry, cvv, setCvv, cardReady, onBack, onPay }) {
+function PaymentStage({ tech, svcs, total, date, time, cardName, setCardName, cardNum, setCardNum, expiry, setExpiry, cvv, setCvv, cardReady, onBack, onPay }) {
   return (
     <div className="screen booking-screen">
 
@@ -492,10 +515,12 @@ function PaymentStage({ tech, svc, date, time, cardName, setCardName, cardNum, s
         {/* Booking mini-summary */}
         <div className="bk-pay-summary">
           <div className="bk-pay-summary-left">
-            <p className="bk-svc-name">{svc?.name}</p>
+            {svcs.map(s => (
+              <p key={s.id} className="bk-svc-name">{s.name}</p>
+            ))}
             <p className="bk-svc-meta">{date} · {time}</p>
           </div>
-          <span className="bk-svc-price">${svc?.price}</span>
+          <span className="bk-svc-price">${total}</span>
         </div>
 
         {/* Cancellation Policy */}
@@ -604,7 +629,8 @@ function PaymentStage({ tech, svc, date, time, cardName, setCardName, cardNum, s
 
 /* ── Confirmation screen ──────────────────────────────────── */
 
-function ConfirmScreen({ tech, svc, date, time, cancelDeadline, onBack, onShare }) {
+function ConfirmScreen({ tech, svcs, total, date, time, cancelDeadline, onBack, onShare }) {
+  const svc = svcs?.[0] // for backward compat fields like svc?.name in details card
   return (
     <div className="screen bk-confirmed">
 
@@ -656,12 +682,17 @@ function ConfirmScreen({ tech, svc, date, time, cancelDeadline, onBack, onShare 
         <div className="bk-details-divider" />
 
         <div className="bk-details-rows">
+          {svcs.map((s, i) => (
+            <div key={s.id} className="bk-details-row">
+              <span className="bk-details-label">{i === 0 ? 'Service' : ''}</span>
+              <span className="bk-details-value">{s.name}</span>
+            </div>
+          ))}
           {[
-            { label: 'Service', value: svc?.name },
             { label: 'Date',    value: date },
             { label: 'Time',    value: time },
             { label: 'Deposit', value: '$25 paid', accent: false },
-            { label: 'Total',   value: `$${svc?.price}`, accent: true },
+            { label: 'Total',   value: `$${total}`, accent: true },
           ].map(({ label, value, accent }) => (
             <div key={label} className="bk-details-row">
               <span className="bk-details-label">{label}</span>

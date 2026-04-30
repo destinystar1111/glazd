@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 /* ── Style vibes ────────────────────────────────────────── */
 
-const STYLE_VIBES = [
+const BASE_STYLE_VIBES = [
   { id:'glazed-chrome', name:'Glazed Chrome', icon:'🪞', tags:'chrome · glass · minimal',   g:['#dde0f5','#b8c0ee'], light:false },
   { id:'dark-botanics', name:'Dark Botanics', icon:'🌿', tags:'moody · green · witchy',     g:['#1a2a1a','#2d4a2d'], light:true  },
   { id:'coastal-girl',  name:'Coastal Girl',  icon:'🐚', tags:'sandy · blue · summer',      g:['#c8eef4','#8dd5e8'], light:false },
@@ -17,11 +17,25 @@ const DEFAULT_BOARDS = [
   { id:'summer',      label:'Summer Inspo',   icon:'☀️' },
 ]
 
-const DEFAULT_BOARD_VIBES = {
-  specialties: new Set(['glazed-chrome', 'sakura-bloom', 'coastal-girl']),
-  spring:      new Set(['sakura-bloom', 'coastal-girl', 'glazed-chrome']),
-  summer:      new Set(['coastal-girl', 'mob-royale', 'dark-botanics']),
+/* Per-board data: { [boardId]: { vibes: Set, photos: { [vibeId]: string[] }, customVibes: [] } } */
+function initBoardData() {
+  return {
+    specialties: { vibes: new Set(['glazed-chrome', 'sakura-bloom', 'coastal-girl']), photos: {}, customVibes: [] },
+    spring:      { vibes: new Set(['sakura-bloom', 'coastal-girl', 'glazed-chrome']), photos: {}, customVibes: [] },
+    summer:      { vibes: new Set(['coastal-girl', 'mob-royale', 'dark-botanics']),   photos: {}, customVibes: [] },
+  }
 }
+
+/* ── Add Style color/emoji options ──────────────────────── */
+
+const STYLE_COLORS = [
+  ['#dde0f5','#b8c0ee'], ['#1a2a1a','#2d4a2d'], ['#c8eef4','#8dd5e8'],
+  ['#4a0f1e','#7a1a30'], ['#fce8ee','#f5c0d0'], ['#0f0a2a','#1a1040'],
+  ['#fdf0e0','#f5d5b8'], ['#e0d5f5','#c4b0e8'], ['#f5e8d5','#e8d5b0'],
+  ['#d5f0e0','#b0e8c4'], ['#fce8d5','#f5c6a0'], ['#f5f0d5','#f0e8b8'],
+]
+
+const STYLE_EMOJIS = ['💅','🌸','🪞','🌙','💎','🌿','💄','✨','🤍','☀️','🖤','🎨','🌷','🫧','⭐','🦋']
 
 /* ── Mock matched clients ───────────────────────────────── */
 
@@ -35,7 +49,7 @@ const NT_CLIENTS = [
 
 /* ── Share Modal ────────────────────────────────────────── */
 
-function ShareModal({ board, boardVibes, onSend, onClose }) {
+function ShareModal({ board, currentVibes, allVibes, onSend, onClose }) {
   const [selected, setSelected] = useState(new Set())
   const [sent,     setSent]     = useState(false)
 
@@ -54,7 +68,7 @@ function ShareModal({ board, boardVibes, onSend, onClose }) {
     }, 1300)
   }
 
-  const previewVibes = STYLE_VIBES.filter(v => boardVibes.has(v.id)).slice(0, 3)
+  const previewVibes = allVibes.filter(v => currentVibes.has(v.id)).slice(0, 3)
 
   return (
     <div className="nt-mb-share-overlay" onClick={onClose}>
@@ -181,35 +195,169 @@ function NewBoardModal({ onConfirm, onClose }) {
   )
 }
 
-/* ── Screen ─────────────────────────────────────────────── */
+/* ── Add Style Modal ────────────────────────────────────── */
 
-export default function NailTechMoodboard({ onShareBoard }) {
-  const [boards,      setBoards]      = useState(DEFAULT_BOARDS)
-  const [activeBoard, setActiveBoard] = useState('specialties')
-  const [boardVibes,  setBoardVibes]  = useState(DEFAULT_BOARD_VIBES)
-  const [shareModal,  setShareModal]  = useState(false)
-  const [newBoardModal, setNewBoardModal] = useState(false)
+function AddStyleModal({ onSave, onClose }) {
+  const [name,      setName]      = useState('')
+  const [emoji,     setEmoji]     = useState('✨')
+  const [colorIdx,  setColorIdx]  = useState(0)
+  const [tags,      setTags]      = useState('')
 
-  const currentBoard     = boards.find(b => b.id === activeBoard) ?? boards[0]
-  const currentVibes     = boardVibes[activeBoard] ?? new Set()
-
-  const toggleVibe = (vibeId) => {
-    setBoardVibes(prev => {
-      const next   = new Set(prev[activeBoard] ?? [])
-      next.has(vibeId) ? next.delete(vibeId) : next.add(vibeId)
-      return { ...prev, [activeBoard]: next }
+  const handleSave = () => {
+    if (!name.trim()) return
+    onSave({
+      id:    'custom-' + Date.now(),
+      name:  name.trim(),
+      icon:  emoji,
+      tags:  tags.trim() || 'custom',
+      g:     STYLE_COLORS[colorIdx],
+      light: false,
     })
   }
 
+  const preview = STYLE_COLORS[colorIdx]
+
+  return (
+    <div className="nt-mb-share-overlay" onClick={onClose}>
+      <div className="nt-mb-share-sheet" onClick={e => e.stopPropagation()}>
+        <div className="nt-mb-share-handle" />
+        <p className="nt-mb-share-title">Add a Style</p>
+
+        {/* Preview */}
+        <div
+          className="nt-mb-add-preview-card"
+          style={{ background: `linear-gradient(145deg, ${preview[0]}, ${preview[1]})` }}
+        >
+          <span className="nt-mb-add-preview-emoji">{emoji}</span>
+          <p className="nt-mb-add-preview-name">{name || 'Style name'}</p>
+        </div>
+
+        <input
+          className="nt-edit-input"
+          placeholder="Style name (e.g. Glazed Chrome)"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          autoFocus
+          style={{ marginTop: 12 }}
+        />
+        <input
+          className="nt-edit-input"
+          placeholder="Tags (e.g. chrome · glass · minimal)"
+          value={tags}
+          onChange={e => setTags(e.target.value)}
+          style={{ marginTop: 8 }}
+        />
+
+        <label className="nt-edit-label" style={{ marginTop: 14 }}>Emoji</label>
+        <div className="nt-mb-icon-grid">
+          {STYLE_EMOJIS.map(e => (
+            <button
+              key={e}
+              className={`nt-mb-icon-btn ${emoji === e ? 'active' : ''}`}
+              onClick={() => setEmoji(e)}
+            >
+              {e}
+            </button>
+          ))}
+        </div>
+
+        <label className="nt-edit-label" style={{ marginTop: 14 }}>Color</label>
+        <div className="nt-mb-add-color-grid">
+          {STYLE_COLORS.map((pair, i) => (
+            <button
+              key={i}
+              className={`nt-mb-add-color-swatch ${colorIdx === i ? 'active' : ''}`}
+              style={{ background: `linear-gradient(135deg, ${pair[0]}, ${pair[1]})` }}
+              onClick={() => setColorIdx(i)}
+            />
+          ))}
+        </div>
+
+        <button
+          className="nt-mb-share-send-btn"
+          style={{ marginTop: 20 }}
+          onClick={handleSave}
+          disabled={!name.trim()}
+        >
+          Add Style ✦
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ── Screen ─────────────────────────────────────────────── */
+
+export default function NailTechMoodboard({ onShareBoard }) {
+  const [boards,        setBoards]        = useState(DEFAULT_BOARDS)
+  const [activeBoard,   setActiveBoard]   = useState('specialties')
+  const [boardData,     setBoardData]     = useState(initBoardData)
+  const [shareModal,    setShareModal]    = useState(false)
+  const [newBoardModal, setNewBoardModal] = useState(false)
+  const [addStyleModal, setAddStyleModal] = useState(false)
+  const fileRefs                          = useRef({})
+
+  const currentBoard = boards.find(b => b.id === activeBoard) ?? boards[0]
+  const bd           = boardData[activeBoard] ?? { vibes: new Set(), photos: {}, customVibes: [] }
+  const allVibes     = [...BASE_STYLE_VIBES, ...bd.customVibes]
+  const currentVibes = bd.vibes
+  const currentPics  = bd.photos
+
+  /* ── Board data helper ── */
+  const updateBd = (fn) =>
+    setBoardData(prev => {
+      const cur = prev[activeBoard] ?? { vibes: new Set(), photos: {}, customVibes: [] }
+      return { ...prev, [activeBoard]: fn(cur) }
+    })
+
+  const toggleVibe = (vibeId) =>
+    updateBd(cur => {
+      const next = new Set(cur.vibes)
+      next.has(vibeId) ? next.delete(vibeId) : next.add(vibeId)
+      return { ...cur, vibes: next }
+    })
+
+  /* ── Photo upload ── */
+  const triggerUpload = (vibeId) => {
+    const input = fileRefs.current[vibeId]
+    if (input) input.click()
+  }
+
+  const handlePhotoUpload = (vibeId, e) => {
+    const files = Array.from(e.target.files)
+    if (!files.length) return
+    const urls = files.map(f => URL.createObjectURL(f))
+    updateBd(cur => ({
+      ...cur,
+      photos: {
+        ...cur.photos,
+        [vibeId]: [...(cur.photos[vibeId] ?? []), ...urls],
+      },
+    }))
+    e.target.value = ''
+  }
+
+  /* ── Add custom style ── */
+  const handleAddStyle = (vibe) => {
+    updateBd(cur => ({
+      ...cur,
+      customVibes: [...cur.customVibes, vibe],
+      vibes:       new Set([...cur.vibes, vibe.id]),
+    }))
+    setAddStyleModal(false)
+  }
+
+  /* ── Share board ── */
   const handleSend = (clientIds) => {
-    const vibeObjects = STYLE_VIBES.filter(v => currentVibes.has(v.id))
+    const vibeObjects = allVibes.filter(v => currentVibes.has(v.id))
     onShareBoard?.(currentBoard.label, vibeObjects, clientIds)
   }
 
+  /* ── Create board ── */
   const handleCreateBoard = ({ label, icon }) => {
     const id = `board-${Date.now()}`
     setBoards(prev => [...prev, { id, label, icon }])
-    setBoardVibes(prev => ({ ...prev, [id]: new Set() }))
+    setBoardData(prev => ({ ...prev, [id]: { vibes: new Set(), photos: {}, customVibes: [] } }))
     setActiveBoard(id)
     setNewBoardModal(false)
   }
@@ -233,7 +381,7 @@ export default function NailTechMoodboard({ onShareBoard }) {
         </div>
       </div>
 
-      {/* Board tabs (horizontal scroll pills) */}
+      {/* Board tabs */}
       <div className="nt-mb-boards-row">
         {boards.map(b => (
           <button
@@ -257,10 +405,11 @@ export default function NailTechMoodboard({ onShareBoard }) {
       {/* Vibe grid */}
       <div className="nt-mb-grid-wrap">
         <div className="nt-mb-grid">
-          {STYLE_VIBES.map(vibe => {
-            const isSel = currentVibes.has(vibe.id)
+          {allVibes.map(vibe => {
+            const isSel  = currentVibes.has(vibe.id)
+            const photos = currentPics[vibe.id] ?? []
             return (
-              <button
+              <div
                 key={vibe.id}
                 className={`nt-mb-vibe-card ${isSel ? 'selected' : ''}`}
                 style={{ background:`linear-gradient(145deg,${vibe.g[0]},${vibe.g[1]})` }}
@@ -276,17 +425,41 @@ export default function NailTechMoodboard({ onShareBoard }) {
                   style={{ color: vibe.light ? 'rgba(255,255,255,0.62)' : 'rgba(61,37,53,0.55)' }}>
                   {vibe.tags}
                 </p>
-              </button>
+
+                {/* Photo thumbnails */}
+                {photos.length > 0 && (
+                  <div className="nt-mb-vibe-photos" onClick={e => e.stopPropagation()}>
+                    {photos.slice(0, 4).map((url, i) => (
+                      <img key={i} src={url} className="nt-mb-vibe-photo" alt="" />
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload button */}
+                <button
+                  className="nt-mb-vibe-upload-btn"
+                  onClick={e => { e.stopPropagation(); triggerUpload(vibe.id) }}
+                  aria-label="Add photo"
+                >＋</button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  style={{ display: 'none' }}
+                  ref={el => { fileRefs.current[vibe.id] = el }}
+                  onChange={e => handlePhotoUpload(vibe.id, e)}
+                />
+              </div>
             )
           })}
-          <button className="nt-mb-add-card" onClick={() => {}}>
+          <button className="nt-mb-add-card" onClick={() => setAddStyleModal(true)}>
             <span className="nt-mb-add-plus">＋</span>
             <span className="nt-mb-add-label">Add Style</span>
           </button>
         </div>
       </div>
 
-      {/* Share selected vibes bar — appears when any vibes are checked */}
+      {/* Share selected vibes bar */}
       {currentVibes.size > 0 && (
         <div className="nt-mb-vibe-share-bar">
           <span className="nt-mb-vibe-share-count">
@@ -298,7 +471,7 @@ export default function NailTechMoodboard({ onShareBoard }) {
         </div>
       )}
 
-      {/* Footer — count hint only */}
+      {/* Footer */}
       <div className="nt-mb-footer">
         <p className="nt-mb-count">
           {currentVibes.size === 0 && (
@@ -311,7 +484,8 @@ export default function NailTechMoodboard({ onShareBoard }) {
       {shareModal && (
         <ShareModal
           board={currentBoard}
-          boardVibes={currentVibes}
+          currentVibes={currentVibes}
+          allVibes={allVibes}
           onSend={handleSend}
           onClose={() => setShareModal(false)}
         />
@@ -322,6 +496,14 @@ export default function NailTechMoodboard({ onShareBoard }) {
         <NewBoardModal
           onConfirm={handleCreateBoard}
           onClose={() => setNewBoardModal(false)}
+        />
+      )}
+
+      {/* Add style modal */}
+      {addStyleModal && (
+        <AddStyleModal
+          onSave={handleAddStyle}
+          onClose={() => setAddStyleModal(false)}
         />
       )}
     </div>

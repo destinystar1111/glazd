@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 /* ── Data ──────────────────────────────────────────────── */
 
@@ -401,17 +401,38 @@ function NTBioStep({ data, onChange }) {
 /* ── Step 5: Portfolio ─────────────────────────────────── */
 
 function NTPortfolioStep({ data, onChange }) {
-  const toggleTile = (idx) =>
+  const fileInputRef   = useRef(null)
+  const pendingTileRef = useRef(null)
+
+  const handleTileClick = (idx) => {
+    if (data.portfolio[idx]) {
+      // Filled tile — remove it
+      onChange(d => {
+        const portfolio  = [...d.portfolio]
+        portfolio[idx]   = null
+        const coverPhotos = d.coverPhotos.filter(c => c !== idx)
+        return { ...d, portfolio, coverPhotos }
+      })
+    } else {
+      // Empty tile — open file picker
+      pendingTileRef.current = idx
+      fileInputRef.current?.click()
+    }
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file || pendingTileRef.current === null) return
+    const idx = pendingTileRef.current
+    const url = URL.createObjectURL(file)
     onChange(d => {
       const portfolio = [...d.portfolio]
-      const wasFilled = !!portfolio[idx]
-      portfolio[idx] = wasFilled ? null : PORTFOLIO_FILLS[idx]
-      // removing a photo also removes it from cover picks
-      const coverPhotos = wasFilled
-        ? d.coverPhotos.filter(c => c !== idx)
-        : d.coverPhotos
-      return { ...d, portfolio, coverPhotos }
+      portfolio[idx]  = { url }
+      return { ...d, portfolio }
     })
+    pendingTileRef.current = null
+    e.target.value = ''
+  }
 
   const toggleCover = (e, idx) => {
     e.stopPropagation()
@@ -419,17 +440,24 @@ function NTPortfolioStep({ data, onChange }) {
       if (d.coverPhotos.includes(idx)) {
         return { ...d, coverPhotos: d.coverPhotos.filter(c => c !== idx) }
       }
-      if (d.coverPhotos.length >= 4) return d   // max 4 card photos
+      if (d.coverPhotos.length >= 4) return d
       return { ...d, coverPhotos: [...d.coverPhotos, idx] }
     })
   }
 
-  const filledCount  = data.portfolio.filter(Boolean).length
-  const coverCount   = data.coverPhotos.length
-  const coverFull    = coverCount >= 4
+  const filledCount = data.portfolio.filter(Boolean).length
+  const coverCount  = data.coverPhotos.length
+  const coverFull   = coverCount >= 4
 
   return (
     <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
       <h2 className="step-q">Show your work</h2>
       <p className="step-hint">Up to 12 photos · star up to 4 for your swipe card</p>
       <div className="step-content">
@@ -445,12 +473,11 @@ function NTPortfolioStep({ data, onChange }) {
               <div
                 key={i}
                 className={`nt-portfolio-tile ${tile ? 'filled' : ''} ${isStarred ? 'cover' : ''}`}
-                style={tile ? { background: tile.bg } : {}}
-                onClick={() => toggleTile(i)}
+                onClick={() => handleTileClick(i)}
               >
                 {tile ? (
                   <>
-                    <div className="nt-portfolio-img">{tile.emoji}</div>
+                    <img src={tile.url} className="nt-portfolio-real-img" alt="portfolio" />
                     <button
                       className={`nt-cover-star-btn ${isStarred ? 'starred' : ''}`}
                       onClick={(e) => toggleCover(e, i)}
@@ -467,7 +494,7 @@ function NTPortfolioStep({ data, onChange }) {
           })}
         </div>
         <p className="nt-portfolio-hint">
-          Tap empty slot to add · tap ☆ on a photo to show it on your client card
+          Tap empty slot to upload · tap ☆ to feature on your client card
         </p>
       </div>
     </>

@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useContext } from 'react'
+import { MessagesContext } from '../MessagesContext'
 
-/* ── Mock thread data ───────────────────────────────────── */
+/* ── Thread metadata (name, avatar, gradient) ────────────── */
 
 const NT_THREADS = [
   { id:1, name:'Aria Monroe',   avatar:'💅', g:['#f9c5d1','#e8758a'], lastMsg:"Can't wait for my appointment! 💕",   time:'2m',        unread:2 },
@@ -10,52 +11,24 @@ const NT_THREADS = [
   { id:5, name:'Raven Ellis',   avatar:'🪞', g:['#dde0f5','#b8c0ee'], lastMsg:"I'll send the deposit shortly",        time:'3d',        unread:0 },
 ]
 
-const NT_SEED_MSGS = {
-  1: [
-    { id:1, from:'them', text:"Hi! Just confirmed my booking 💅", time:'2 days ago' },
-    { id:2, from:'me',   text:'Perfect! I have your appointment set for May 2nd at 2pm', time:'2 days ago' },
-    { id:3, from:'them', text:"I'm thinking glazed chrome with soft pink tips 🪞", time:'1 day ago' },
-    { id:4, from:'me',   text:'Love that combo — I can already picture it ✨', time:'1 day ago' },
-    { id:5, from:'them', text:"Can't wait for my appointment! 💕", time:'2m' },
-  ],
-  2: [
-    { id:1, from:'them', text:"Hey! So excited we matched 🖤", time:'3 days ago' },
-    { id:2, from:'me',   text:'Same! Your witchy aesthetic is everything 💅', time:'3 days ago' },
-    { id:3, from:'them', text:"I just shared my inspo pics 🖤", time:'1h' },
-  ],
-  6: [
-    { id:1, from:'them', text:"Bonjour! Thank you for accepting my booking ✨", time:'5 days ago' },
-    { id:2, from:'me',   text:'Of course! Looking forward to creating your set', time:'5 days ago' },
-    { id:3, from:'them', text:'Your moodboard is gorgeous 🤍', time:'Yesterday' },
-  ],
-  3: [
-    { id:1, from:'them', text:"Hi! Love your glam portfolio 💎", time:'1 week ago' },
-    { id:2, from:'me',   text:'Thank you! We are going to have so much fun ✨', time:'1 week ago' },
-    { id:3, from:'them', text:'See you Saturday at 2pm! 💕', time:'2d' },
-  ],
-  5: [
-    { id:1, from:'them', text:"Just booked! Super excited 🪞", time:'5 days ago' },
-    { id:2, from:'me',   text:'Yay! I have everything ready for you', time:'5 days ago' },
-    { id:3, from:'them', text:"I'll send the deposit shortly", time:'3d' },
-  ],
-}
-
-/* ── Chat View (inline) ─────────────────────────────────── */
+/* ── Chat View ───────────────────────────────────────────── */
 
 function NTChatView({ thread, onBack }) {
-  const [messages, setMessages] = useState(NT_SEED_MSGS[thread.id] ?? [])
-  const [draft, setDraft]       = useState('')
-  const bottomRef               = useRef(null)
-  const msgIdRef                = useRef(100)   // persists across renders
+  const { threads, sendMessage } = useContext(MessagesContext)
+  const messages = threads[thread.id] ?? []
+
+  const [draft,   setDraft]   = useState('')
+  const bottomRef             = useRef(null)
+  const inputRef              = useRef(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const sendMessage = () => {
+  const handleSend = () => {
     const text = draft.trim()
     if (!text) return
-    setMessages(prev => [...prev, { id: msgIdRef.current++, from: 'me', text, time: 'Just now' }])
+    sendMessage(thread.id, text, 'tech')
     setDraft('')
   }
 
@@ -83,36 +56,76 @@ function NTChatView({ thread, onBack }) {
 
       {/* Messages */}
       <div className="chat-msgs">
-        {messages.map(msg => (
-          <div key={msg.id} className={`bubble-wrap ${msg.from === 'me' ? 'bubble-me' : 'bubble-them'}`}>
-            {msg.from !== 'me' && (
-              <div
-                className="chat-avatar"
-                style={{ width:26, height:26, background:`linear-gradient(135deg,${thread.g[0]},${thread.g[1]})`, flexShrink:0 }}
-              >
-                <span style={{ fontSize:'0.7rem' }}>{thread.avatar}</span>
+        {messages.map((msg, i) => {
+          const isMe   = msg.from === 'tech'
+          const isLast = i === messages.length - 1 || messages[i + 1]?.from !== msg.from
+
+          /* Moodboard message */
+          if (msg.type === 'moodboard') {
+            return (
+              <div key={msg.id} className={`bubble-wrap ${isMe ? 'bubble-me' : 'bubble-them'}`}>
+                {!isMe && isLast && (
+                  <div
+                    className="chat-avatar"
+                    style={{ width:26, height:26, background:`linear-gradient(135deg,${thread.g[0]},${thread.g[1]})`, flexShrink:0 }}
+                  >
+                    <span style={{ fontSize:'0.7rem' }}>{thread.avatar}</span>
+                  </div>
+                )}
+                {!isMe && !isLast && <div style={{ width: 26 }} />}
+                <div className="bubble-moodboard">
+                  <p className="bubble-mb-label">🎨 {isMe ? 'My Board' : 'Client Moodboard'}</p>
+                  <div className="bubble-mb-vibes">
+                    {msg.vibes.slice(0, 3).map(v => (
+                      <div
+                        key={v.name}
+                        className="bubble-mb-vibe"
+                        style={{ background: `linear-gradient(135deg, ${v.g[0]}, ${v.g[1]})` }}
+                      >
+                        <span className="bubble-mb-vibe-icon">{v.icon}</span>
+                        <span className="bubble-mb-vibe-name">{v.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  {msg.text && <p className="bubble-mb-text">{msg.text}</p>}
+                </div>
               </div>
-            )}
-            <div className="bubble">
-              <p className="bubble-text">{msg.text}</p>
+            )
+          }
+
+          return (
+            <div key={msg.id} className={`bubble-wrap ${isMe ? 'bubble-me' : 'bubble-them'}`}>
+              {!isMe && isLast && (
+                <div
+                  className="chat-avatar"
+                  style={{ width:26, height:26, background:`linear-gradient(135deg,${thread.g[0]},${thread.g[1]})`, flexShrink:0 }}
+                >
+                  <span style={{ fontSize:'0.7rem' }}>{thread.avatar}</span>
+                </div>
+              )}
+              {!isMe && !isLast && <div style={{ width: 26 }} />}
+              <div className="bubble">
+                <p className="bubble-text">{msg.text}</p>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <div ref={bottomRef} />
       </div>
 
       {/* Input */}
       <div className="chat-input-row">
         <input
+          ref={inputRef}
           className="chat-input"
           placeholder="Message…"
           value={draft}
           onChange={e => setDraft(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && sendMessage()}
+          onKeyDown={e => e.key === 'Enter' && handleSend()}
         />
         <button
           className="chat-send-btn"
-          onClick={sendMessage}
+          onClick={handleSend}
           disabled={!draft.trim()}
           aria-label="Send"
         >›</button>

@@ -93,7 +93,7 @@ function ReviewModal({ appt, onSubmit, onClose }) {
   const handleSubmit = () => {
     if (!stars) return
     setDone(true)
-    setTimeout(() => { onSubmit(appt.id); onClose() }, 1500)
+    setTimeout(() => { onSubmit(appt.id, { stars, tags, text }); onClose() }, 1500)
   }
 
   return (
@@ -304,6 +304,7 @@ export default function ProfileScreen({ profile, onSettings, onNotifications }) 
   const [cancelled,     setCancelled]     = useState(new Set())
   const [reviewed,      setReviewed]      = useState(new Set())
   const [reviewingAppt, setReviewingAppt] = useState(null)
+  const [myReviews,     setMyReviews]     = useState([])
 
   const initials = userData.name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
   const visibleUpcoming = UPCOMING_APPTS.filter(a => !cancelled.has(a.id))
@@ -447,6 +448,42 @@ export default function ProfileScreen({ profile, onSettings, onNotifications }) 
           })}
         </div>
 
+        {/* ── My Reviews ── */}
+        {myReviews.length > 0 && (
+          <div className="pf-section">
+            <p className="pf-section-title">My Reviews</p>
+            {myReviews.map(r => (
+              <div key={r.id} className="pf-my-review-card">
+                <div className="pf-my-review-top">
+                  <div
+                    className="pf-appt-avatar"
+                    style={{ background: `linear-gradient(135deg, ${r.g[0]}, ${r.g[1]})` }}
+                  >
+                    <span>{r.icon}</span>
+                  </div>
+                  <div className="pf-my-review-info">
+                    <p className="pf-my-review-tech">{r.tech}</p>
+                    <p className="pf-my-review-service">{r.service} · {r.date}</p>
+                  </div>
+                  <div className="pf-my-review-stars">
+                    {'★'.repeat(r.stars)}{'☆'.repeat(5 - r.stars)}
+                  </div>
+                </div>
+                {r.tags.length > 0 && (
+                  <div className="pf-my-review-tags">
+                    {r.tags.map(tag => {
+                      const t = REVIEW_TAGS.find(rt => rt.id === tag)
+                      return t ? <span key={tag} className="pf-my-review-tag">{t.label}</span> : null
+                    })}
+                  </div>
+                )}
+                {r.text.trim() && <p className="pf-my-review-text">"{r.text.trim()}"</p>}
+                <p className="pf-my-review-date">{r.submittedDate}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="pf-bottom-pad" />
       </div>
 
@@ -454,7 +491,22 @@ export default function ProfileScreen({ profile, onSettings, onNotifications }) 
       {reviewingAppt && (
         <ReviewModal
           appt={reviewingAppt}
-          onSubmit={(id) => setReviewed(prev => new Set([...prev, id]))}
+          onSubmit={(id, review) => {
+            setReviewed(prev => new Set([...prev, id]))
+            const appt = PAST_APPTS.find(a => a.id === id)
+            setMyReviews(prev => [...prev, {
+              id: Date.now(),
+              tech: appt.tech,
+              icon: appt.icon,
+              g: appt.g,
+              service: appt.service,
+              date: appt.date,
+              stars: review.stars,
+              tags: review.tags,
+              text: review.text,
+              submittedDate: 'Just now',
+            }])
+          }}
           onClose={() => setReviewingAppt(null)}
         />
       )}

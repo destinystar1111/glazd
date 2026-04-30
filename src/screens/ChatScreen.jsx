@@ -1,44 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
-
-/* ── Pre-seeded conversations by match ID ─────────────────── */
-
-const SEED_MSGS = {
-  2: [
-    { id: 1, from: 'them', text: 'Hi! I saw your preferences and I love your taste ✨', time: '2:14 PM' },
-    { id: 2, from: 'them', text: 'Witchy and character art are literally my specialties 🖤', time: '2:15 PM' },
-    { id: 3, from: 'them', text: "I think we'd be a perfect match ✨", time: '2:16 PM' },
-  ],
-  3: [
-    { id: 1, from: 'them', text: 'Hey gorgeous! 💕 So excited to be matched with you!', time: '10:30 AM' },
-    { id: 2, from: 'me',   text: 'Omg your portfolio is EVERYTHING 😭💎 I need those rhinestone sets', time: '10:32 AM' },
-    { id: 3, from: 'them', text: "Yesss let's book you in! Do you have a date in mind?", time: '10:33 AM' },
-    { id: 4, from: 'me',   text: 'What about this Saturday?', time: '11:00 AM' },
-    { id: 5, from: 'them', text: "Perfect! Can't wait to see you on Saturday! 💕", time: '11:02 AM' },
-  ],
-  5: [
-    { id: 1, from: 'them', text: 'Hello! Noticed we matched 🪞✨', time: '2 days ago' },
-    { id: 2, from: 'me',   text: 'Raven your glazed chrome sets are unreal, I need them immediately', time: '2 days ago' },
-    { id: 3, from: 'them', text: "Thank you so much! I'd love to do a set for you 🤍", time: '2 days ago' },
-    { id: 4, from: 'me',   text: 'Yes please! How do I book?', time: '2 days ago' },
-    { id: 5, from: 'them', text: "Sounds good! I'll send you the booking link", time: 'Yesterday' },
-  ],
-  6: [
-    { id: 1, from: 'them', text: 'Bonjour! So lovely to match with you ✨', time: '3 days ago' },
-    { id: 2, from: 'me',   text: 'Your minimalist French tips are perfection 😍', time: '3 days ago' },
-    {
-      id: 3, from: 'them', type: 'moodboard',
-      vibes: [
-        { name: 'Glazed Chrome', icon: '🪞', g: ['#dde0f5','#b8c0ee'] },
-        { name: 'Quiet Luxury',  icon: '🤍', g: ['#fdf8f5','#f0e8e0'] },
-      ],
-      text: "Here's some inspo I put together for you \u2728",
-      time: '2 days ago',
-    },
-    { id: 4, from: 'them', text: 'I love your clean aesthetic — these styles would suit you perfectly', time: '2 days ago' },
-  ],
-}
-
-let _msgId = 100
+import { useState, useRef, useEffect, useContext } from 'react'
+import { MessagesContext } from '../MessagesContext'
 
 /* ── Avatar helper ───────────────────────────────────────── */
 
@@ -60,47 +21,22 @@ function Avatar({ match, size = 38 }) {
 
 /* ── Screen ──────────────────────────────────────────────── */
 
-export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodboard, ntSharedBoards }) {
-  const seed = SEED_MSGS[match.id] ?? []
-  const [messages, setMessages] = useState(() => {
-    const base = [...seed]
-    if (sharedMoodboard && sharedMoodboard.length > 0) {
-      base.push({
-        id: 999, from: 'me', type: 'moodboard',
-        vibes: sharedMoodboard,
-        text: "Here's my moodboard for inspo! \u2728",
-        time: 'Just now',
-      })
-    }
-    if (ntSharedBoards && ntSharedBoards.length > 0) {
-      ntSharedBoards.forEach((board, i) => {
-        base.push({
-          id: 1000 + i, from: 'them', type: 'moodboard',
-          boardLabel: board.boardLabel,
-          vibes: board.vibes,
-          text: `Here's my ${board.boardLabel} board for inspo \u2728`,
-          time: 'Just now',
-        })
-      })
-    }
-    return base
-  })
-  const [draft, setDraft]       = useState('')
-  const bottomRef               = useRef(null)
-  const inputRef                = useRef(null)
+export default function ChatScreen({ match, onBack, onBook, onRate }) {
+  const { threads, sendMessage } = useContext(MessagesContext)
+  const messages = threads[match.id] ?? []
 
-  /* auto-scroll to bottom on new message */
+  const [draft,   setDraft]   = useState('')
+  const bottomRef             = useRef(null)
+  const inputRef              = useRef(null)
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const sendMessage = () => {
+  const handleSend = () => {
     const text = draft.trim()
     if (!text) return
-    setMessages((prev) => [
-      ...prev,
-      { id: ++_msgId, from: 'me', text, time: 'Just now' },
-    ])
+    sendMessage(match.id, text, 'client')
     setDraft('')
     inputRef.current?.focus()
   }
@@ -108,7 +44,7 @@ export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodbo
   const onKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      handleSend()
     }
   }
 
@@ -157,7 +93,7 @@ export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodbo
         ) : (
           <div className="chat-bubble-list">
             {messages.map((msg, i) => {
-              const isMe   = msg.from === 'me'
+              const isMe   = msg.from === 'client'
               const isLast = i === messages.length - 1 ||
                              messages[i + 1]?.from !== msg.from
 
@@ -211,7 +147,7 @@ export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodbo
         )}
       </div>
 
-      {/* ── Rate-session banner (shown for completed appointments) ── */}
+      {/* ── Rate-session banner ── */}
       {match.id === 3 && (
         <div className="chat-rate-banner" onClick={() => onRate?.(match)}>
           <div className="chat-rate-banner-left">
@@ -238,7 +174,7 @@ export default function ChatScreen({ match, onBack, onBook, onRate, sharedMoodbo
         />
         <button
           className="chat-send-btn"
-          onClick={sendMessage}
+          onClick={handleSend}
           disabled={!draft.trim()}
           aria-label="Send"
         >
