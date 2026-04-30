@@ -118,8 +118,9 @@ export default function App() {
   const [ratings,         setRatings]         = useState([])
   const [settingsFrom,    setSettingsFrom]    = useState('discover')
   const [notifsFrom,      setNotifsFrom]      = useState('discover')
-  const [sharedMoodboards, setSharedMoodboards] = useState({})
-  const [ntBoardShares,   setNtBoardShares]   = useState({})
+  const [sharedMoodboards,  setSharedMoodboards]  = useState({})
+  const [ntBoardShares,     setNtBoardShares]     = useState({})
+  const [ntDashInitialTab,  setNtDashInitialTab]  = useState('dashboard')
 
   const isMain = MAIN_TABS.includes(screen)
 
@@ -147,6 +148,31 @@ export default function App() {
       matchIds.forEach(id => { next[id] = vibes })
       return next
     })
+  }
+
+  const handleNotifAction = (action) => {
+    if (notifsFrom === 'ntDash') {
+      const tabMap = {
+        booking:  'calendar',
+        calendar: 'calendar',
+        matches:  'messages',
+        reviews:  'profile',
+        earnings: 'dashboard',
+        messages: 'messages',
+      }
+      setNtDashInitialTab(tabMap[action] ?? 'dashboard')
+      setScreen('ntDash')
+    } else {
+      const screenMap = {
+        booking:  'profile',
+        calendar: 'profile',
+        matches:  'matches',
+        reviews:  'profile',
+        earnings: 'profile',
+        messages: 'matches',
+      }
+      setScreen(screenMap[action] ?? 'discover')
+    }
   }
 
   const handleNTShareBoard = (boardLabel, vibes, clientIds) => {
@@ -205,6 +231,7 @@ export default function App() {
           onSettings={() => openSettings('ntDash')}
           onNotifications={() => openNotifs('ntDash')}
           onShareBoard={handleNTShareBoard}
+          initialTab={ntDashInitialTab}
         />
       )}
 
@@ -219,6 +246,7 @@ export default function App() {
       {screen === 'notifications' && (
         <NotificationsScreen
           onBack={() => setScreen(notifsFrom)}
+          onAction={handleNotifAction}
         />
       )}
 

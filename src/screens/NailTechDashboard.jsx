@@ -3,6 +3,7 @@ import NailTechCalendar  from './NailTechCalendar'
 import NailTechClients   from './NailTechClients'
 import NailTechProfile   from './NailTechProfile'
 import NailTechMoodboard from './NailTechMoodboard'
+import NailTechMessages  from './NailTechMessages'
 
 /* ── Constants ─────────────────────────────────────────── */
 
@@ -80,14 +81,14 @@ const MONTHLY_APPTS = [
 
 /* ── Main Dashboard ────────────────────────────────────── */
 
-export default function NailTechDashboard({ profile, avgRating, onSettings, onNotifications, onShareBoard }) {
+export default function NailTechDashboard({ profile, avgRating, onSettings, onNotifications, onShareBoard, initialTab }) {
   const [appts,         setAppts]         = useState(INITIAL_APPTS)
   const [requests,      setRequests]      = useState(INITIAL_REQUESTS)
   const [accepted,      setAccepted]      = useState([])
   const [expandedId,    setExpandedId]    = useState(null)
   const [modal,         setModal]         = useState(null)       // { type, apptId }
   const [statsPanel,    setStatsPanel]    = useState(null)       // 'clients' | 'reviews' | 'monthly' | 'earnings'
-  const [activeTab,     setActiveTab]     = useState('dashboard')
+  const [activeTab,     setActiveTab]     = useState(initialTab ?? 'dashboard')
   const [calendarClient,setCalendarClient]= useState(null)       // client name pre-selected from calendar
 
   const [refundType,   setRefundType]   = useState('deposit')
@@ -136,6 +137,7 @@ export default function NailTechDashboard({ profile, avgRating, onSettings, onNo
           onClear={() => setCalendarClient(null)}
         />
       )}
+      {activeTab === 'messages'  && <NailTechMessages />}
       {activeTab === 'moodboard' && <NailTechMoodboard onShareBoard={onShareBoard} />}
       {activeTab === 'profile'   && <NailTechProfile profile={profile} avgRating={avgRating} onSettings={onSettings} />}
 
@@ -156,7 +158,7 @@ export default function NailTechDashboard({ profile, avgRating, onSettings, onNo
 
         {/* ── Clickable Stats Strip ── */}
         <div className="nt-stats-strip">
-          <button className="nt-stat nt-stat-btn" onClick={() => setStatsPanel('clients')}>
+          <button className="nt-stat nt-stat-btn" onClick={() => setActiveTab('clients')}>
             <div className="nt-stat-val">47</div>
             <div className="nt-stat-label">Clients</div>
           </button>
@@ -270,7 +272,7 @@ export default function NailTechDashboard({ profile, avgRating, onSettings, onNo
         {[
           { key:'dashboard', icon:'🏠', label:'Dashboard' },
           { key:'calendar',  icon:'📅', label:'Calendar'  },
-          { key:'clients',   icon:'👥', label:'Clients'   },
+          { key:'messages',  icon:'💬', label:'Messages'  },
           { key:'moodboard', icon:'🎨', label:'Boards'    },
           { key:'profile',   icon:'👤', label:'Profile'   },
         ].map(({ key, icon, label }) => (
