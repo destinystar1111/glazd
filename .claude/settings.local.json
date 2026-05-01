@@ -10,7 +10,10 @@
       "Bash(gh auth login)",
       "Bash(brew install gh)",
       "Bash(gh repo create glazd --public --source=. --remote=origin --push)",
-      "Bash(git add . && git commit -m \"pre-moodboard and messaging fixes save\")"
+      "Bash(git add . && git commit -m \"pre-moodboard and messaging fixes save\")",
+      "Bash(git add src/MessagesContext.js src/App.jsx src/App.css src/screens/ChatScreen.jsx src/screens/NailTechMessages.jsx src/screens/MoodboardScreen.jsx src/screens/NailTechMoodboard.jsx src/screens/ProfileScreen.jsx src/screens/BookingScreen.jsx src/screens/NailTechOnboarding.jsx && git status)",
+      "Bash(git commit -m \"$\\(cat <<'EOF'\n8 features: moodboard photo upload, add vibe/style, per-board vibes, messages context, reviews section, multi-service booking, NT photo upload signup, moodboard message persistence\n\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git add . && git commit -m \"moodboard uploads, messaging fixes, multi-service booking\")"
     ]
   }
 }
